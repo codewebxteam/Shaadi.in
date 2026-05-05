@@ -5,15 +5,15 @@ const About = () => {
   // 🔥 Carousel track karne ke liye state
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // 🔥 Yahan apne 4 images ke path daal dena jo tum About section mein dikhana chahte ho
+  // 🔥 ImageKit Links
   const aboutImages = [
-    "https://ik.imagekit.io/rbrxweg2q/crop2.jpg", // Pehli image wahi purani wali
+    "https://ik.imagekit.io/rbrxweg2q/crop2.jpg",
     "https://ik.imagekit.io/rbrxweg2q/crop1.jpg",
     "https://ik.imagekit.io/rbrxweg2q/crop3.jpg",
     "https://ik.imagekit.io/rbrxweg2q/couple-about.png"
   ];
 
-  // 🔥 Automatic slide logic (har 3.5 seconds mein image change hogi)
+  // 🔥 Automatic slide logic
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % aboutImages.length);
@@ -23,11 +23,11 @@ const About = () => {
   }, [aboutImages.length]);
 
   return (
-    /* 🔥 id="about-section" add ki hai scroll ke liye */
     <div id="about-section" className="w-full min-h-screen bg-white">
       
+      {/* HEADER SECTION */}
       <div className="w-full bg-gradient-to-b from-[#fff0f5] to-white pt-32 pb-16 px-6 text-center relative overflow-hidden">
-        
+        {/* Background decorative elements - ✅ Fixed size syntax */}
         <div className="absolute top-10 left-10 text-[#e02c5a]/10 rotate-12">
           <Heart size={100} fill="currentColor"/>
         </div>
@@ -50,11 +50,12 @@ const About = () => {
         </div>
       </div>
 
+      {/* MAIN CONTENT SECTION */}
       <div className="max-w-7xl mx-auto px-6 md:px-12 py-16 flex flex-col lg:flex-row gap-16 items-center">
         
+        {/* LEFT: Image Carousel */}
         <div className="w-full lg:w-1/2 relative">
           <div className="aspect-square md:aspect-[4/3] bg-gray-100 rounded-[40px] overflow-hidden relative shadow-2xl border-4 border-white">
-            
             {aboutImages.map((img, index) => (
               <img 
                 key={index}
@@ -65,10 +66,10 @@ const About = () => {
                 }`}
               />
             ))}
-
             <div className="absolute inset-0 bg-[#e02c5a]/10 mix-blend-overlay pointer-events-none"></div>
           </div>
           
+          {/* Floating Badge - ✅ Fixed key and size syntax */}
           <div className="absolute -bottom-6 -right-2 md:-right-6 bg-white p-5 rounded-3xl shadow-[0_10px_30px_rgba(224,44,90,0.15)] flex flex-col items-center gap-1 border border-gray-50 z-10">
             <div className="flex gap-1">
               {[...Array(5)].map((_, i) => (
@@ -80,12 +81,13 @@ const About = () => {
           </div>
         </div>
 
+        {/* RIGHT: Text & Features Grid */}
         <div className="w-full lg:w-1/2 flex flex-col gap-6">
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#821511] leading-tight">
             Why Choose Local Shaadi?
           </h2>
           <p className="text-gray-600 leading-relaxed font-medium">
-            Finding a partner is a huge milestone. We focus on localized matchmaking to ensure you find someone who truly understands your roots, shares your values, and matches your family's lifestyle—specifically starting from places like Sant Kabir Nagar.
+            Finding a partner is a huge milestone. We focus on localized matchmaking to ensure you find someone who truly understands your roots, shares your values, and matches your family's lifestyle.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
@@ -96,7 +98,7 @@ const About = () => {
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg">100% Verified</h3>
-                <p className="text-sm text-gray-500 mt-1 leading-snug">Every profile undergoes strict manual screening for your safety.</p>
+                <p className="text-sm text-gray-500 mt-1 leading-snug">Every profile undergoes strict manual screening.</p>
               </div>
             </div>
 
@@ -106,7 +108,7 @@ const About = () => {
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg">Local Matches</h3>
-                <p className="text-sm text-gray-500 mt-1 leading-snug">Connect with eligible singles from your own city and community.</p>
+                <p className="text-sm text-gray-500 mt-1 leading-snug">Connect with eligible singles from your own city.</p>
               </div>
             </div>
 
@@ -116,7 +118,7 @@ const About = () => {
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg">Active Community</h3>
-                <p className="text-sm text-gray-500 mt-1 leading-snug">A vast, growing network of genuine people ready for marriage.</p>
+                <p className="text-sm text-gray-500 mt-1 leading-snug">A vast, growing network of genuine people.</p>
               </div>
             </div>
 
@@ -126,7 +128,7 @@ const About = () => {
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg">Success Stories</h3>
-                <p className="text-sm text-gray-500 mt-1 leading-snug">Countless happy couples have found their forever right here.</p>
+                <p className="text-sm text-gray-500 mt-1 leading-snug">Countless happy couples found their forever here.</p>
               </div>
             </div>
 
