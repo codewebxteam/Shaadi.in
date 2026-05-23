@@ -1,16 +1,17 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Hero from './components/Hero';
-import About from './components/About';
-import Footer from './components/Footer';
-import Login from './components/Login'; 
-import Help from './pages/Help'; 
-import PersonalProfile from './pages/PersonalProfile'; 
-import Dashboard from './pages/Dashboard';
-import Matches from './pages/Matches'; // 🔥 Matches component import kiya
-import FinalProfile from './pages/FinalProfile';
-import Notifications from './pages/Notifications';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Hero from "./components/Hero";
+import About from "./components/About";
+import Footer from "./components/Footer";
+import Login from "./components/Login";
+import Help from "./pages/Help";
+import PersonalProfile from "./pages/PersonalProfile";
+import Dashboard from "./pages/Dashboard";
+import Matches from "./pages/Matches";
+import FinalProfile from "./pages/FinalProfile";
+import Notifications from "./pages/Notifications";
+import PremiumPlans from "./pages/Premium";
 
 function App() {
   return (
@@ -18,10 +19,9 @@ function App() {
       <div className="min-h-screen bg-[#fff0f5] flex flex-col font-sans">
         <main className="flex-grow">
           <Routes>
-            
-            {/* 🔥 YAHAN Navbar, Hero, About aur Footer ek sath hain (HOME PAGE) */}
-            <Route 
-              path="/" 
+            {/* 🔥 HOME PAGE (Yahan Navbar aur Footer dono rahenge) */}
+            <Route
+              path="/"
               element={
                 <>
                   <Navbar />
@@ -29,31 +29,87 @@ function App() {
                   <About />
                   <Footer />
                 </>
-              } 
+              }
             />
 
-            {/* Help page pe Navbar aur Footer chahiye */}
-            <Route 
-              path="/help" 
+            {/* 🔥 HELP PAGE (Navbar + Footer) */}
+            <Route
+              path="/help"
               element={
                 <>
                   <Navbar />
                   <Help />
                   <Footer />
                 </>
-              } 
+              }
             />
 
-            {/* 🔥 IN PAGES PAR NAVBAR NAHI DIKHEGA */}
+            {/* 🔥 LOGIN PAGE (Bina Navbar aur Footer ke) */}
             <Route path="/login" element={<Login />} />
-            <Route path="/profile-setup" element={<PersonalProfile />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            
-            {/* 🔥 MATCHES PAGE ROUTE (Yahan add kiya hai) */}
-            <Route path="/matches" element={<Matches />} />
-            <Route path="/final-profile" element={<FinalProfile />} />
-            <Route path="/notifications" element={<Notifications />} />
-            
+
+            {/* 🔥 PROFILE SETUP PAGE (Sirf Navbar rahega, NO FOOTER) */}
+            <Route
+              path="/profile-setup"
+              element={
+                <>
+                  <Navbar />
+                  <PersonalProfile />
+                </>
+              }
+            />
+
+            {/* ======================================================== */}
+            {/* 🔥 POST-LOGIN PAGES (Sirf Navbar rahega, NO FOOTER) */}
+            {/* ======================================================== */}
+            <Route
+              path="/dashboard"
+              element={
+                <>
+                  <Navbar />
+                  <Dashboard />
+                </>
+              }
+            />
+
+            <Route
+              path="/matches"
+              element={
+                <>
+                  <Navbar />
+                  <Matches />
+                </>
+              }
+            />
+
+            <Route
+              path="/final-profile"
+              element={
+                <>
+                  <Navbar />
+                  <FinalProfile />
+                </>
+              }
+            />
+
+            <Route
+              path="/notifications"
+              element={
+                <>
+                  <Navbar />
+                  <Notifications />
+                </>
+              }
+            />
+
+            <Route
+              path="/premium"
+              element={
+                <>
+                  <Navbar />
+                  <PremiumPlans />
+                </>
+              }
+            />
           </Routes>
         </main>
       </div>

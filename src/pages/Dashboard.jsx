@@ -1,356 +1,784 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Heart, MessageSquare, Search, ChevronDown, User, 
-  Camera, Eye, Star, CheckCircle, Home,
-  Bell, Filter, SlidersHorizontal, MapPin
-} from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Heart,
+  Search,
+  ChevronDown,
+  User,
+  Camera,
+  CheckCircle,
+  Filter,
+  SlidersHorizontal,
+  MapPin,
+  Sparkles,
+  Flower2,
+  BookOpen,
+  Briefcase,
+} from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  // Mock User Data
-  const userData = {
-    name: "Rahul Verma",
-    age: 27,
-    location: "Lucknow, Uttar Pradesh",
-    religion: "Hindu",
-    caste: "Kshatriya",
-    profession: "Software Engineer",
-    profilePic: "https://images.unsplash.com/photo-1600486913747-55e5470d6f40?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-    stats: {
-      views: 125,
-      matches: 18,
-      notifications: '12', 
-      shortlisted: '07',
-      whoViewed: 15
-    }
-  };
+  // 🔥 State for Liked Profiles & Infinite Scroll
+  const [likedProfiles, setLikedProfiles] = useState(new Set());
+  const [visibleCount, setVisibleCount] = useState(6);
 
-  // Mock Matches Data
-  const recommendedProfiles = [
-    { 
-      id: 1, name: "Anjali Sharma", age: 25, location: "Jaipur, Rajasthan", 
-      religion: "Hindu", caste: "Brahmin", profession: "Software Engineer", salary: "₹ 6 LPA", 
-      isOnline: true, pics: 5, 
-      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" 
+  // 🔥 30 Dummy Profiles Data (No Backend changes)
+  const allRecommendedProfiles = [
+    {
+      id: 1,
+      name: "Anjali Sharma",
+      age: 25,
+      location: "Lucknow, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "Software Engineer",
+      salary: "₹ 6 LPA",
+      isOnline: true,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
     },
-    { 
-      id: 2, name: "Rahul Verma", age: 27, location: "Lucknow, Uttar Pradesh", 
-      religion: "Hindu", caste: "Kshatriya", profession: "Software Engineer", salary: "₹ 7 LPA", 
-      isOnline: true, pics: 4, 
-      img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" 
+    {
+      id: 2,
+      name: "Rohit Singhania",
+      age: 28,
+      location: "Kanpur, UP",
+      religion: "Hindu",
+      caste: "Kshatriya",
+      profession: "Data Scientist",
+      salary: "₹ 12 LPA",
+      isOnline: true,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
     },
-    { 
-      id: 3, name: "Priya Singh", age: 24, location: "Delhi", 
-      religion: "Hindu", caste: "Baniya", profession: "Doctor", salary: "₹ 8 LPA", 
-      isOnline: true, pics: 6, 
-      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" 
+    {
+      id: 3,
+      name: "Priya Singh",
+      age: 24,
+      location: "Delhi",
+      religion: "Hindu",
+      caste: "Rajput",
+      profession: "Doctor",
+      salary: "₹ 8 LPA",
+      isOnline: true,
+      pics: 6,
+      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
     },
-    { 
-      id: 4, name: "Vikram Patel", age: 28, location: "Surat, Gujarat", 
-      religion: "Hindu", caste: "Patel", profession: "Business Analyst", salary: "₹ 5.5 LPA", 
-      isOnline: false, pics: 3, 
-      img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" 
+    {
+      id: 4,
+      name: "Vikram Patel",
+      age: 29,
+      location: "Varanasi, UP",
+      religion: "Hindu",
+      caste: "Patel",
+      profession: "Business Analyst",
+      salary: "₹ 7.5 LPA",
+      isOnline: false,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
     },
-    { 
-      id: 5, name: "Neha Verma", age: 24, location: "Indore, Madhya Pradesh", 
-      religion: "Hindu", caste: "Vaishya", profession: "Chartered Accountant", salary: "₹ 6.5 LPA", 
-      isOnline: true, pics: 3, 
-      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" 
+    {
+      id: 5,
+      name: "Neha Verma",
+      age: 24,
+      location: "Prayagraj, UP",
+      religion: "Hindu",
+      caste: "Kayastha",
+      profession: "Chartered Accountant",
+      salary: "₹ 6.5 LPA",
+      isOnline: true,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
     },
-    { 
-      id: 6, name: "Aman Gupta", age: 26, location: "Mumbai, Maharashtra", 
-      religion: "Hindu", caste: "Kayastha", profession: "Marketing Executive", salary: "₹ 6 LPA", 
-      isOnline: false, pics: 4, 
-      img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" 
+    {
+      id: 6,
+      name: "Aman Gupta",
+      age: 27,
+      location: "Noida, UP",
+      religion: "Hindu",
+      caste: "Baniya",
+      profession: "Marketing Executive",
+      salary: "₹ 9 LPA",
+      isOnline: false,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 7,
+      name: "Sneha Mishra",
+      age: 26,
+      location: "Lucknow, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "HR Manager",
+      salary: "₹ 5 LPA",
+      isOnline: true,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 8,
+      name: "Karan Yadav",
+      age: 28,
+      location: "Gorakhpur, UP",
+      religion: "Hindu",
+      caste: "Yadav",
+      profession: "Civil Engineer",
+      salary: "₹ 8 LPA",
+      isOnline: true,
+      pics: 2,
+      img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 9,
+      name: "Kavya Tiwari",
+      age: 25,
+      location: "Ayodhya, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "Teacher",
+      salary: "₹ 4 LPA",
+      isOnline: false,
+      pics: 6,
+      img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 10,
+      name: "Arjun Singh",
+      age: 30,
+      location: "Ghaziabad, UP",
+      religion: "Hindu",
+      caste: "Rajput",
+      profession: "Software Developer",
+      salary: "₹ 15 LPA",
+      isOnline: true,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 11,
+      name: "Pooja Chaurasia",
+      age: 24,
+      location: "Sant Kabir Nagar",
+      religion: "Hindu",
+      caste: "Chaurasia",
+      profession: "Bank PO",
+      salary: "₹ 7 LPA",
+      isOnline: true,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 12,
+      name: "Aditya Pandey",
+      age: 29,
+      location: "Lucknow, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "Architect",
+      salary: "₹ 8.5 LPA",
+      isOnline: false,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 13,
+      name: "Shruti Agarwal",
+      age: 26,
+      location: "Delhi",
+      religion: "Hindu",
+      caste: "Baniya",
+      profession: "UI/UX Designer",
+      salary: "₹ 10 LPA",
+      isOnline: true,
+      pics: 7,
+      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 14,
+      name: "Rahul Chaudhary",
+      age: 27,
+      location: "Basti, UP",
+      religion: "Hindu",
+      caste: "Chaudhary",
+      profession: "Business",
+      salary: "₹ 12 LPA",
+      isOnline: true,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 15,
+      name: "Riya Sharma",
+      age: 23,
+      location: "Kanpur, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "Content Writer",
+      salary: "₹ 5 LPA",
+      isOnline: false,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 16,
+      name: "Yash Pratap",
+      age: 28,
+      location: "Agra, UP",
+      religion: "Hindu",
+      caste: "Rajput",
+      profession: "Police Officer",
+      salary: "₹ 6 LPA",
+      isOnline: true,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 17,
+      name: "Swati Dixit",
+      age: 25,
+      location: "Lucknow, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "Software Engineer",
+      salary: "₹ 8 LPA",
+      isOnline: true,
+      pics: 6,
+      img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 18,
+      name: "Kunal Singh",
+      age: 30,
+      location: "Noida, UP",
+      religion: "Hindu",
+      caste: "Kshatriya",
+      profession: "Project Manager",
+      salary: "₹ 18 LPA",
+      isOnline: false,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 19,
+      name: "Nisha Patel",
+      age: 27,
+      location: "Ahmedabad, Gujarat",
+      religion: "Hindu",
+      caste: "Patel",
+      profession: "Dentist",
+      salary: "₹ 10 LPA",
+      isOnline: true,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 20,
+      name: "Siddharth Jain",
+      age: 29,
+      location: "Delhi",
+      religion: "Jain",
+      caste: "Digambar",
+      profession: "Businessman",
+      salary: "₹ 20 LPA",
+      isOnline: true,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 21,
+      name: "Megha Soni",
+      age: 24,
+      location: "Varanasi, UP",
+      religion: "Hindu",
+      caste: "Sunar",
+      profession: "Fashion Designer",
+      salary: "₹ 6 LPA",
+      isOnline: false,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 22,
+      name: "Tarun Kumar",
+      age: 27,
+      location: "Patna, Bihar",
+      religion: "Hindu",
+      caste: "Kurmi",
+      profession: "Software Engineer",
+      salary: "₹ 9 LPA",
+      isOnline: true,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 23,
+      name: "Kritika Sharma",
+      age: 26,
+      location: "Lucknow, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "Professor",
+      salary: "₹ 5.5 LPA",
+      isOnline: true,
+      pics: 6,
+      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 24,
+      name: "Varun Singh",
+      age: 28,
+      location: "Gorakhpur, UP",
+      religion: "Hindu",
+      caste: "Rajput",
+      profession: "Doctor",
+      salary: "₹ 14 LPA",
+      isOnline: false,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 25,
+      name: "Shalini Gupta",
+      age: 25,
+      location: "Delhi",
+      religion: "Hindu",
+      caste: "Baniya",
+      profession: "Financial Analyst",
+      salary: "₹ 8 LPA",
+      isOnline: true,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 26,
+      name: "Nikhil Maurya",
+      age: 29,
+      location: "Kanpur, UP",
+      religion: "Hindu",
+      caste: "Maurya",
+      profession: "Government Officer",
+      salary: "₹ 7 LPA",
+      isOnline: true,
+      pics: 3,
+      img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 27,
+      name: "Divya Rastogi",
+      age: 24,
+      location: "Lucknow, UP",
+      religion: "Hindu",
+      caste: "Rastogi",
+      profession: "Pharmacist",
+      salary: "₹ 5 LPA",
+      isOnline: false,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 28,
+      name: "Manish Pandey",
+      age: 31,
+      location: "Noida, UP",
+      religion: "Hindu",
+      caste: "Brahmin",
+      profession: "IT Consultant",
+      salary: "₹ 16 LPA",
+      isOnline: true,
+      pics: 6,
+      img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 29,
+      name: "Akanksha Rajput",
+      age: 26,
+      location: "Agra, UP",
+      religion: "Hindu",
+      caste: "Rajput",
+      profession: "Interior Designer",
+      salary: "₹ 6.5 LPA",
+      isOnline: true,
+      pics: 5,
+      img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
+    },
+    {
+      id: 30,
+      name: "Saurabh Jaiswal",
+      age: 28,
+      location: "Varanasi, UP",
+      religion: "Hindu",
+      caste: "Jaiswal",
+      profession: "Entrepreneur",
+      salary: "₹ 15 LPA",
+      isOnline: true,
+      pics: 4,
+      img: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
     },
   ];
 
+  // 🔥 Infinite Scroll Logic
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 300
+      ) {
+        setVisibleCount((prevCount) =>
+          Math.min(prevCount + 4, allRecommendedProfiles.length),
+        );
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // 🔥 Handle Like Logic
+  const handleLike = (e, profile) => {
+    e.stopPropagation();
+    if (!likedProfiles.has(profile.id)) {
+      setLikedProfiles((prev) => new Set(prev).add(profile.id));
+      alert(
+        `💖 You liked ${profile.name}! They have been added to your Matches.`,
+      );
+    }
+  };
+
   // Helper class for hiding scrollbars
-  const hideScrollbar = "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]";
+  const hideScrollbar =
+    "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]";
 
   return (
-    <div className={`min-h-screen bg-[#f8fafc] font-sans pb-24 md:pb-20 ${hideScrollbar}`}>
-      
-      {/* ================= MOBILE HEADER ================= */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-50 shadow-sm">
-        {/* Hamburger Menu Removed Here */}
-        <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => navigate('/dashboard')}>
-          <Heart size={24} className="text-[#e02c5a]" fill="currentColor" />
-          <h1 className="text-xl font-bold flex items-baseline">
-            <span className="text-gray-900 tracking-tight">LocalShaadi</span>
-            <span className="text-gray-900 text-[10px]">.com</span>
-          </h1>
+    <div
+      className={`min-h-screen bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] font-sans pb-12 relative overflow-x-hidden ${hideScrollbar}`}
+    >
+      {/* ================= MAGICAL ROMANTIC BACKGROUND ================= */}
+      <style>{`
+        @keyframes gentle-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-15px); }
+        }
+        .animate-gentle {
+          animation: gentle-bounce 4s ease-in-out infinite;
+        }
+        .heart-beat {
+          animation: heart-beat 1s infinite alternate;
+        }
+        @keyframes heart-beat {
+          0% { transform: scale(1); }
+          100% { transform: scale(1.1); }
+        }
+        @keyframes fade-in-up {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in-up 0.8s ease-out forwards;
+        }
+      `}</style>
+
+      <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute -top-[10%] -right-[5%] w-[400px] h-[400px] rounded-full bg-[#e02c5a]/10 blur-[90px]"></div>
+        <div className="absolute top-[40%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fbbf24]/10 blur-[90px]"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] rounded-full bg-rose-200/20 blur-[60px]"></div>
+
+        <div
+          className="absolute top-[15%] left-[5%] opacity-15 animate-gentle"
+          style={{ animationDelay: "0s" }}
+        >
+          <Heart
+            size={50}
+            fill="#e02c5a"
+            color="#e02c5a"
+            className="-rotate-12"
+          />
         </div>
-        
-        <button onClick={() => navigate('/notifications')} className="relative focus:outline-none">
-          <Bell size={24} className="text-gray-800" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-white">3</span>
-        </button>
+        <div
+          className="absolute top-[60%] right-[8%] opacity-15 animate-gentle"
+          style={{ animationDelay: "1s" }}
+        >
+          <Heart
+            size={70}
+            fill="#fbbf24"
+            color="#fbbf24"
+            className="rotate-12"
+          />
+        </div>
+        <div className="absolute top-[30%] right-[15%] opacity-10 animate-pulse">
+          <Flower2 size={40} color="#e02c5a" strokeWidth={1.5} />
+        </div>
+        <div
+          className="absolute bottom-[20%] left-[10%] opacity-20 animate-gentle"
+          style={{ animationDelay: "2s" }}
+        >
+          <Sparkles size={35} color="#fbbf24" strokeWidth={1.5} />
+        </div>
       </div>
 
-      {/* ================= DESKTOP TOP NAVBAR ================= */}
-      <nav className="hidden md:block bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          
-          {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
-            <Heart size={28} className="text-[#e02c5a]" fill="currentColor" />
-            <h1 className="text-xl font-bold flex items-baseline">
-              <span className="text-gray-900 tracking-tight">LocalShaadi</span>
-              <span className="text-gray-900 text-sm">.com</span>
-            </h1>
+      {/* ================= DESKTOP HERO SECTION (MAGICAL VIBE) ================= */}
+      <div className="hidden md:block relative bg-gradient-to-r from-[#fff0f5] via-rose-50 to-[#fce4ec] pt-12 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden z-10 border-b border-rose-100/50">
+        <div
+          className="absolute right-0 top-0 bottom-0 w-1/2 opacity-40 mix-blend-multiply pointer-events-none"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1511285560929-80b456fea0bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80')",
+            backgroundSize: "cover",
+            backgroundPosition: "right center",
+            maskImage: "linear-gradient(to right, transparent, black)",
+          }}
+        ></div>
+        <div className="max-w-7xl mx-auto relative z-10 text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Sparkles className="text-[#fbbf24]" size={24} />
+            <span className="text-[#e02c5a] font-bold tracking-widest text-sm uppercase">
+              Discover True Love
+            </span>
+            <Sparkles className="text-[#fbbf24]" size={24} />
           </div>
-          
-          {/* Menu Links */}
-          <div className="flex items-center gap-8 font-medium text-gray-700">
-            <a href="#" className="text-[#e02c5a] border-b-2 border-[#e02c5a] py-7">Home</a>
-            
-            <button onClick={() => navigate('/matches')} className="hover:text-[#e02c5a] py-7 transition-colors">Matches</button>
-            
-            <button onClick={() => navigate('/notifications')} className="hover:text-[#e02c5a] py-7 transition-colors flex items-center gap-1 relative focus:outline-none">
-              Notifications
-              <span className="bg-[#e02c5a] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full -mt-3 absolute -right-4 top-5">3</span>
-            </button>
-            <a href="#" className="hover:text-[#e02c5a] py-7 transition-colors">Premium</a>
-          </div>
-          
-          {/* Search & Profile Container (Right Aligned) */}
-          <div className="flex items-center gap-4">
-            {/* Search Input right before profile button */}
-            <div className="relative flex items-center">
-              <Search size={18} className="absolute left-3 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search name, ID..." 
-                className="pl-10 pr-4 py-2 w-56 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:bg-white focus:border-[#e02c5a] focus:ring-2 focus:ring-[#e02c5a]/20 transition-all"
-              />
-            </div>
-
-            {/* Profile Button */}
-            <button onClick={() => navigate('/final-profile')} className="flex items-center gap-2 bg-[#e02c5a] hover:bg-[#c0163e] text-white px-5 py-2.5 rounded-full font-semibold transition-colors shadow-sm shrink-0">
-              <User size={18} />
-              <span>My Profile</span>
-            </button>
-          </div>
-          
-        </div>
-      </nav>
-
-      {/* ================= DESKTOP HERO SECTION ================= */}
-      <div className="hidden md:block relative bg-gradient-to-r from-[#fff0f5] to-[#fce4ec] pt-16 pb-28 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-30 mix-blend-multiply pointer-events-none" 
-             style={{ backgroundImage: "url('https://images.unsplash.com/photo-1511285560929-80b456fea0bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80')", backgroundSize: 'cover', backgroundPosition: 'right center', maskImage: 'linear-gradient(to right, transparent, black)' }}>
-        </div>
-        <div className="max-w-7xl mx-auto relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 font-serif">Find Your Perfect</h2>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#e02c5a] mb-6 font-serif">Life Partner</h2>
-          <p className="text-gray-700 text-lg max-w-md leading-relaxed">Trusted by thousands of families.<br/>Join Local Shaadi and find your<br/>perfect match today.</p>
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 font-serif">
+            Handpicked Matches
+          </h2>
+          <h2 className="text-4xl md:text-5xl font-bold text-[#e02c5a] mb-6 font-serif drop-shadow-sm">
+            Just For You 💖
+          </h2>
+          <p className="text-gray-700 text-lg max-w-2xl mx-auto leading-relaxed font-medium">
+            We found these beautiful souls who perfectly match your preferences.
+            Find your perfect partner today.
+          </p>
         </div>
       </div>
 
       {/* ================= DESKTOP FLOATING FILTER BAR ================= */}
       <div className="hidden md:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-12 z-20 mb-8">
-        <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] p-6 border border-gray-100 flex items-center gap-4">
-          <div className="flex-1 border-r border-gray-100 pr-4">
-            <label className="text-xs text-gray-500 font-medium block mb-1">Looking for</label>
-            <div className="flex items-center justify-between"><span className="font-semibold text-gray-800">Bride</span><ChevronDown size={16} className="text-gray-400" /></div>
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_40px_rgba(224,44,90,0.1)] p-6 border border-rose-100 flex items-center gap-4">
+          <div className="flex-1 border-r border-rose-100 pr-4">
+            <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
+              Looking for
+            </label>
+            <div className="flex items-center justify-between cursor-pointer group">
+              <span className="font-bold text-gray-800 group-hover:text-[#e02c5a] transition-colors">
+                Bride
+              </span>
+              <ChevronDown size={16} className="text-[#e02c5a]" />
+            </div>
           </div>
-          <div className="flex-1 border-r border-gray-100 px-4">
-            <label className="text-xs text-gray-500 font-medium block mb-1">Age</label>
-            <div className="flex items-center justify-between"><span className="font-semibold text-gray-800">18 - 30</span><ChevronDown size={16} className="text-gray-400" /></div>
+          <div className="flex-1 border-r border-rose-100 px-4">
+            <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
+              Age
+            </label>
+            <div className="flex items-center justify-between cursor-pointer group">
+              <span className="font-bold text-gray-800 group-hover:text-[#e02c5a] transition-colors">
+                18 - 30
+              </span>
+              <ChevronDown size={16} className="text-[#e02c5a]" />
+            </div>
           </div>
-          <div className="flex-1 border-r border-gray-100 px-4">
-            <label className="text-xs text-gray-500 font-medium block mb-1">Location</label>
-            <div className="flex items-center justify-between"><span className="font-semibold text-gray-800">Select Location</span><ChevronDown size={16} className="text-gray-400" /></div>
+          <div className="flex-1 border-r border-rose-100 px-4">
+            <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
+              Location
+            </label>
+            <div className="flex items-center justify-between cursor-pointer group">
+              <span className="font-bold text-gray-800 group-hover:text-[#e02c5a] transition-colors">
+                Select Location
+              </span>
+              <ChevronDown size={16} className="text-[#e02c5a]" />
+            </div>
           </div>
           <div className="flex-1 px-4">
-            <label className="text-xs text-gray-500 font-medium block mb-1">Religion</label>
-            <div className="flex items-center justify-between"><span className="font-semibold text-gray-800">Select Religion</span><ChevronDown size={16} className="text-gray-400" /></div>
+            <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
+              Religion
+            </label>
+            <div className="flex items-center justify-between cursor-pointer group">
+              <span className="font-bold text-gray-800 group-hover:text-[#e02c5a] transition-colors">
+                Select Religion
+              </span>
+              <ChevronDown size={16} className="text-[#e02c5a]" />
+            </div>
           </div>
           <div className="pl-4">
-            <button className="bg-[#e02c5a] hover:bg-[#c0163e] text-white px-8 py-3.5 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-sm">
-              <Filter size={18} /> Apply
+            <button className="bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] hover:shadow-lg hover:-translate-y-0.5 text-white px-8 py-3.5 rounded-xl font-bold transition-all flex items-center gap-2 shadow-md">
+              <Filter size={18} /> Apply Matches
             </button>
           </div>
         </div>
       </div>
 
       {/* ================= MOBILE SEARCH & FILTERS ================= */}
-      <div className="md:hidden px-4 pt-4 pb-2 bg-white">
+      <div className="md:hidden px-4 pt-4 pb-2 bg-white/80 backdrop-blur-md relative z-20 border-b border-rose-100">
         <div className="relative mb-4">
-          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Search by name, location, profession..." 
-            className="w-full pl-12 pr-12 py-3 bg-white rounded-xl border border-gray-200 text-sm focus:outline-none shadow-sm text-gray-700" 
+          <Search
+            size={20}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#e02c5a]"
           />
-          <Filter size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#e02c5a]" />
+          <input
+            type="text"
+            placeholder="Search your soulmate..."
+            className="w-full pl-12 pr-12 py-3.5 bg-white rounded-2xl border border-rose-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#e02c5a]/20 shadow-sm text-gray-700"
+          />
+          <Filter
+            size={20}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#e02c5a]"
+          />
         </div>
-        
+
         <div className={`flex overflow-x-auto gap-2.5 pb-2 ${hideScrollbar}`}>
-          <button className="flex items-center gap-1.5 px-4 py-2 border border-[#e02c5a] rounded-xl text-[#e02c5a] font-medium text-sm whitespace-nowrap">
-            <User size={16}/> Bride
+          <button className="flex items-center gap-1.5 px-5 py-2 border-2 border-[#e02c5a] rounded-xl text-[#e02c5a] font-bold text-sm whitespace-nowrap bg-[#fff0f5]">
+            <User size={16} /> Bride
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 font-medium text-sm whitespace-nowrap bg-white shadow-sm">
-            Age <ChevronDown size={14}/>
+          <button className="flex items-center gap-1.5 px-4 py-2 border border-rose-200 rounded-xl text-gray-700 font-bold text-sm whitespace-nowrap bg-white shadow-sm hover:border-[#e02c5a]/50">
+            Age <ChevronDown size={14} className="text-[#e02c5a]" />
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 font-medium text-sm whitespace-nowrap bg-white shadow-sm">
-            Location <ChevronDown size={14}/>
+          <button className="flex items-center gap-1.5 px-4 py-2 border border-rose-200 rounded-xl text-gray-700 font-bold text-sm whitespace-nowrap bg-white shadow-sm hover:border-[#e02c5a]/50">
+            Location <ChevronDown size={14} className="text-[#e02c5a]" />
           </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 font-medium text-sm whitespace-nowrap bg-white shadow-sm">
-            Religion <ChevronDown size={14}/>
-          </button>
-          <button className="flex items-center justify-center px-3 py-2 border border-gray-200 rounded-xl text-gray-700 bg-white shadow-sm shrink-0">
-            <SlidersHorizontal size={18}/>
+          <button className="flex items-center justify-center px-4 py-2 border border-rose-200 rounded-xl text-gray-700 bg-white shadow-sm shrink-0 hover:text-[#e02c5a]">
+            <SlidersHorizontal size={18} />
           </button>
         </div>
       </div>
 
-      {/* ================= MAIN CONTENT TWO COLUMNS ================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8 mt-2 md:mt-0">
-        
-        {/* LEFT COLUMN: RECOMMENDED PROFILES */}
-        <div className="lg:col-span-2 space-y-3 md:space-y-4">
-          
-          <div className="flex items-center justify-between mb-2 md:mb-4 px-1">
-            <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
-              Recommended Profiles
-              <Heart size={18} className="hidden md:block text-[#e02c5a]" />
-            </h3>
-            <button className="hidden md:flex text-sm text-gray-600 font-medium items-center gap-1 hover:text-gray-900 transition-colors">
-              Sort by: Recently Joined <ChevronDown size={16} />
-            </button>
-            <button onClick={() => navigate('/matches')} className="md:hidden text-sm font-bold text-[#e02c5a]">
-              View All
-            </button>
-          </div>
-
-          {/* Profile Cards Loop */}
-          {recommendedProfiles.map((profile) => (
-            <div key={profile.id} className="bg-white rounded-2xl p-3 sm:p-5 shadow-sm border border-gray-100 flex flex-row gap-3 sm:gap-5 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/matches')}>
-              
-              <div className="relative w-[100px] sm:w-36 h-[130px] sm:h-[180px] shrink-0 rounded-xl overflow-hidden bg-gray-100">
-                <img src={profile.img} alt={profile.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                <div className="absolute bottom-1.5 left-1.5">
-                  <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md text-white border border-white/20 backdrop-blur-sm ${profile.isOnline ? 'bg-green-500/90' : 'bg-gray-500/90'}`}>
-                    {profile.isOnline ? 'Online' : 'Offline'}
-                  </span>
-                </div>
-                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1 bg-black/40 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-bold px-1 py-0.5 rounded border border-white/20">
-                  <Camera size={10} /> {profile.pics}
-                </div>
-              </div>
-
-              <div className="flex-1 flex flex-col justify-center py-1">
-                <h4 className="text-[15px] sm:text-lg font-bold text-gray-900 flex items-center gap-1 mb-1">
-                  {profile.name}
-                  <CheckCircle size={14} className="text-[#e02c5a] bg-white rounded-full shrink-0" fill="currentColor" />
-                </h4>
-                
-                <div className="space-y-1 sm:space-y-1.5 text-[11px] sm:text-sm text-gray-600 font-medium">
-                  <p className="truncate">{profile.age}, {profile.location}</p>
-                  <p className="truncate">{profile.religion} • {profile.caste}</p>
-                  <p className="truncate">{profile.profession} • {profile.salary}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col justify-center items-end gap-2 sm:gap-3 pl-1">
-                <button className="p-2 sm:p-2.5 rounded-full border border-gray-200 text-[#e02c5a] hover:bg-[#fff0f5] transition-all shadow-sm" onClick={(e) => { e.stopPropagation(); navigate('/matches'); }}>
-                  <Heart size={18} className="sm:w-5 sm:h-5" />
-                </button>
-                <button className="p-2 sm:p-2.5 rounded-full border border-gray-200 text-gray-600 hover:text-[#e02c5a] hover:border-[#e02c5a] transition-all shadow-sm" onClick={(e) => { e.stopPropagation(); navigate('/matches'); }}>
-                  <MessageSquare size={18} className="sm:w-5 sm:h-5" />
-                </button>
-              </div>
-              
-            </div>
-          ))}
-
-          <div className="hidden md:flex pt-6 pb-10 justify-center">
-            <button onClick={() => navigate('/matches')} className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-[#e02c5a]/20 text-[#e02c5a] font-bold hover:bg-[#fff0f5] transition-colors">
-              View More Profiles <ChevronDown size={18} />
-            </button>
-          </div>
+      {/* ================= PREMIUM GRID FEED (MATCHES STYLE) ================= */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 md:mt-10 relative z-20 pb-10">
+        <div className="flex items-center justify-center md:justify-start mb-6 md:mb-10">
+          <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#821511] flex items-center gap-3">
+            Matches For You{" "}
+            <Heart
+              size={28}
+              className="text-[#e02c5a] animate-pulse"
+              fill="#e02c5a"
+            />
+          </h3>
         </div>
 
-        {/* RIGHT COLUMN: MY PROFILE WIDGET */}
-        <div className="hidden lg:block lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-28">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">My Profile</h3>
-            <div className="flex flex-col items-center mb-6">
-              <div className="relative w-28 h-28 mb-4">
-                <img src={userData.profilePic} alt="Profile" className="w-full h-full rounded-full object-cover border-4 border-[#fff0f5]" />
-                <button className="absolute bottom-1 right-1 bg-white p-1.5 rounded-full shadow-md text-[#e02c5a] border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <Camera size={14} />
-                </button>
+        {/* 🔥 GRID LAYOUT FOR DESKTOP (2 Columns), SINGLE ON MOBILE */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+          {allRecommendedProfiles.slice(0, visibleCount).map((profile) => {
+            const isLiked = likedProfiles.has(profile.id);
+
+            return (
+              <div
+                key={profile.id}
+                onClick={() => navigate("/matches")}
+                className="animate-fade-in relative bg-white/95 backdrop-blur-md rounded-[28px] p-4 sm:p-5 border border-rose-100 shadow-[0_8px_30px_rgba(224,44,90,0.06)] hover:shadow-[0_20px_50px_rgba(224,44,90,0.15)] hover:-translate-y-1.5 transition-all duration-300 flex flex-row gap-4 sm:gap-6 group cursor-pointer overflow-hidden"
+              >
+                {/* Subtle background glow on hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+
+                {/* Profile Image */}
+                <div className="relative w-[110px] sm:w-[160px] h-[150px] sm:h-[210px] shrink-0 rounded-2xl overflow-hidden shadow-md border-2 border-white z-10">
+                  <img
+                    src={profile.img}
+                    alt={profile.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-90"></div>
+
+                  <div className="absolute bottom-2 left-2">
+                    <span
+                      className={`flex items-center gap-1 text-[9px] sm:text-xs font-bold px-2 py-1 rounded-lg text-white backdrop-blur-md border border-white/30 ${
+                        profile.isOnline ? "bg-green-500/80" : "bg-gray-600/80"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          profile.isOnline
+                            ? "bg-white animate-pulse"
+                            : "bg-gray-300"
+                        }`}
+                      ></span>
+                      {profile.isOnline ? "Online" : "Offline"}
+                    </span>
+                  </div>
+                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/40 backdrop-blur-md text-white text-[9px] sm:text-xs font-bold px-2 py-1 rounded-lg border border-white/20">
+                    <Camera size={12} /> {profile.pics}
+                  </div>
+                </div>
+
+                {/* Profile Details & Like Button */}
+                <div className="relative flex-1 flex flex-col justify-between py-1 z-10">
+                  <div>
+                    <h4 className="text-[17px] sm:text-2xl font-bold font-serif text-gray-900 flex items-center gap-1.5 mb-1 group-hover:text-[#e02c5a] transition-colors">
+                      {profile.name}
+                      <CheckCircle
+                        size={16}
+                        className="text-green-500 bg-white rounded-full shrink-0"
+                        fill="currentColor"
+                      />
+                    </h4>
+
+                    <div className="space-y-1.5 text-[11px] sm:text-sm text-gray-600 font-semibold mt-2 sm:mt-3">
+                      <p className="flex items-center gap-1.5 truncate">
+                        <User size={14} className="text-[#eab308] shrink-0" />{" "}
+                        {profile.age} Yrs
+                      </p>
+                      <p className="flex items-center gap-1.5 truncate">
+                        <MapPin size={14} className="text-[#e02c5a] shrink-0" />{" "}
+                        {profile.location}
+                      </p>
+                      <p className="flex items-center gap-1.5 truncate">
+                        <BookOpen
+                          size={14}
+                          className="text-purple-500 shrink-0"
+                        />{" "}
+                        {profile.religion}, {profile.caste}
+                      </p>
+                      <p className="flex items-center gap-1.5 truncate">
+                        <Briefcase
+                          size={14}
+                          className="text-blue-500 shrink-0"
+                        />{" "}
+                        {profile.profession}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Like Button */}
+                  <div className="flex justify-end mt-3 sm:mt-0">
+                    <button
+                      onClick={(e) => handleLike(e, profile)}
+                      className={`flex items-center justify-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl border-2 transition-all shadow-sm group/btn
+                        ${
+                          isLiked
+                            ? "bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] border-transparent scale-[1.02] shadow-lg"
+                            : "bg-white border-rose-200 hover:border-[#e02c5a] hover:bg-[#fff0f5]"
+                        }`}
+                    >
+                      <Heart
+                        size={18}
+                        className={`transition-all duration-300 ${
+                          isLiked
+                            ? "text-white fill-white heart-beat"
+                            : "text-[#e02c5a] group-hover/btn:scale-110"
+                        }`}
+                      />
+                      <span
+                        className={`text-xs sm:text-sm font-bold ${isLiked ? "text-white" : "text-[#e02c5a]"}`}
+                      >
+                        {isLiked ? "Matched" : "Like"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <h4 className="text-xl font-bold text-gray-900 flex items-center gap-1 mb-1">
-                {userData.name}
-                <CheckCircle size={18} className="text-[#e02c5a] bg-white rounded-full" fill="currentColor" />
-              </h4>
-              <div className="text-sm text-gray-600 text-center font-medium space-y-1">
-                <p>{userData.age}, {userData.location}</p>
-                <p>{userData.religion} • {userData.caste}</p>
-                <p>{userData.profession}</p>
-              </div>
-            </div>
-            <hr className="border-gray-100 mb-6" />
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center justify-between text-sm font-medium">
-                <span className="flex items-center gap-3 text-gray-700"><Eye size={18} className="text-gray-400" /> Profile Views</span>
-                <span className="text-gray-900 font-bold">{userData.stats.views}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm font-medium">
-                <span className="flex items-center gap-3 text-gray-700"><Heart size={18} className="text-[#e02c5a]" /> Matches</span>
-                <span className="text-gray-900 font-bold">{userData.stats.matches}</span>
-              </div>
-              
-              <button onClick={() => navigate('/notifications')} className="w-full flex items-center justify-between text-sm font-medium focus:outline-none hover:text-[#e02c5a] transition-colors group">
-                <span className="flex items-center gap-3 text-gray-700 group-hover:text-[#e02c5a]"><Bell size={18} className="text-gray-400 group-hover:text-[#e02c5a]" /> Notifications</span>
-                <span className="text-gray-900 font-bold group-hover:text-[#e02c5a]">{userData.stats.notifications}</span>
-              </button>
-            </div>
-            <button onClick={() => navigate('/final-profile')} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-[#e02c5a]/20 text-[#e02c5a] font-bold hover:bg-[#fff0f5] transition-colors">
-              <User size={18} /> View & Edit Profile
-            </button>
-          </div>
+            );
+          })}
         </div>
 
-      </div>
+        {/* Loading Indicator for Infinite Scroll */}
+        {visibleCount < allRecommendedProfiles.length && (
+          <div className="flex justify-center items-center py-12 gap-2 text-[#e02c5a] font-bold">
+            <Sparkles size={24} className="animate-spin" /> Fetching more
+            beautiful souls...
+          </div>
+        )}
 
-      {/* ================= BOTTOM NAVIGATION BAR (Mobile Only) ================= */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around items-center h-[72px] z-50 px-2 pb-2">
-        <button onClick={() => navigate('/dashboard')} className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-gray-900">
-          <Home size={22} />
-          <span className="text-[10px] font-medium">Home</span>
-        </button>
-        <button onClick={() => navigate('/dashboard')} className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-gray-900">
-          <Search size={22} />
-          <span className="text-[10px] font-medium">Search</span>
-        </button>
-        <button onClick={() => navigate('/matches')} className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-[#e02c5a]">
-          <Heart size={22} fill="currentColor" />
-          <span className="text-[10px] font-bold">Matches</span>
-        </button>
-        
-        <button onClick={() => navigate('/notifications')} className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-[#e02c5a] relative focus:outline-none">
-          <Bell size={22} />
-          <span className="absolute top-0 right-3 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">3</span>
-          <span className="text-[10px] font-medium">Notifs</span>
-        </button>
-        
-        <button 
-          onClick={() => navigate('/final-profile')}
-          className="flex flex-col items-center justify-center gap-1 text-gray-500 hover:text-gray-900 w-16"
-        >
-          <User size={22} />
-          <span className="text-[10px] font-medium">Profile</span>
-        </button>
+        {visibleCount >= allRecommendedProfiles.length && (
+          <div className="flex justify-center items-center py-12 gap-2 text-gray-500 font-bold">
+            <Heart size={24} fill="currentColor" className="text-[#e02c5a]" />{" "}
+            You've seen all matches for now!
+          </div>
+        )}
       </div>
-
     </div>
   );
 };

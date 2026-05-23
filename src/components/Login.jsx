@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   User,
   Phone,
@@ -11,8 +11,10 @@ import {
   Heart,
   Sparkles,
   Flower2,
+  MapPin,
+  ChevronDown,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 
 const Login = () => {
   // 🔥 Default 1st screen ab Login ki hogi (true set kiya hai)
@@ -27,7 +29,7 @@ const Login = () => {
   // 🔥 Success Animation & Loading State
   const [showSuccessHearts, setShowSuccessHearts] = useState(false);
 
-  // 🔥 Form Data State
+  // 🔥 Form Data State (Ekdum Backend Ready for Node/Express/MongoDB)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -37,18 +39,39 @@ const Login = () => {
     confirmPassword: "",
   });
 
+  // Background floating elements generation
+  const [bgElements, setBgElements] = useState([]);
+
+  useEffect(() => {
+    // Generate 30 random colorful love elements for background
+    const elements = [...Array(30)].map((_, i) => {
+      const types = ["heart", "flower", "sparkle"];
+      const colors = ["#e02c5a", "#fbbf24", "#ec4899", "#f43f5e", "#fbd38d"];
+      return {
+        id: i,
+        type: types[Math.floor(Math.random() * types.length)],
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 30 + 20, // 20px to 50px
+        left: Math.random() * 100, // 0% to 100%
+        top: Math.random() * 100, // 0% to 100%
+        delay: Math.random() * 5, // 0s to 5s
+        duration: Math.random() * 3 + 3, // 3s to 6s
+      };
+    });
+    setBgElements(elements);
+  }, []);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     if (name === "phone") {
-      const onlyNums = value.replace(/[^0-9]/g, ""); // Sirf 0-9 allowed
+      const onlyNums = value.replace(/[^0-9]/g, "");
       if (onlyNums.length <= 10) {
         setFormData({ ...formData, [name]: onlyNums });
       }
     } else if (name === "otp") {
-      // 🔥 OTP ke liye strictly 4 digits aur sirf numbers allow kiye
       const onlyNums = value.replace(/[^0-9]/g, "");
       if (onlyNums.length <= 4) {
         setFormData({ ...formData, [name]: onlyNums });
@@ -58,67 +81,100 @@ const Login = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (isLogin) {
-      // LOGIC: Jab user Login kar raha ho
+      // ==========================================
+      // 🟢 BACKEND READY: LOGIN LOGIC
+      // ==========================================
       if (formData.phone.length !== 10) {
         alert("Please enter a valid 10-digit mobile number.");
         return;
       }
+
       console.log("Logging in with: ", formData.phone, formData.password);
 
-      // 🔥 Trigger Heart & Rose Explosion Animation then navigate after 6 seconds (Double time)
+      /* 🔥 Node/Express API Call Example yahan aayega:
+      try {
+        const response = await axios.post('/api/auth/login', {
+          phone: formData.phone,
+          password: formData.password
+        });
+        if(response.data.success) {
+           // Save token, trigger animation
+        }
+      } catch (error) { ... }
+      */
+
       setShowSuccessHearts(true);
       setTimeout(() => {
-        navigate("/profile-setup");
-      }, 6000); // 6 Second Loading Time
+        navigate("/dashboard");
+      }, 6000);
     } else {
-      // LOGIC: Jab user Register kar raha ho (Step-by-step)
+      // ==========================================
+      // 🟢 BACKEND READY: REGISTRATION LOGIC
+      // ==========================================
 
       if (!otpSent) {
-        // Step 1: Send OTP
+        // Step 1: Send OTP via API
         if (formData.phone.length !== 10) {
           alert("Please enter a valid 10-digit mobile number.");
           return;
         }
+
         console.log("Sending OTP to", formData.phone);
+        /* 🔥 Send OTP API Call Example:
+        await axios.post('/api/auth/send-otp', { phone: formData.phone });
+        */
+
         setOtpSent(true);
         alert(
           `OTP sent successfully to ${formData.phone}! (Use 1234 for testing)`,
         );
       } else if (otpSent && !otpVerified) {
-        // Step 2: Verify OTP
+        // Step 2: Verify OTP via API
         if (formData.otp.length !== 4) {
           alert("Please enter a 4-digit OTP.");
           return;
         }
+
+        /* 🔥 Verify OTP API Call Example:
+        const response = await axios.post('/api/auth/verify-otp', { phone: formData.phone, otp: formData.otp });
+        if(response.data.valid) { setOtpVerified(true); }
+        */
+
         if (formData.otp === "1234") {
-          // Dummy check
           setOtpVerified(true);
           alert("Phone number verified successfully!");
         } else {
           alert("Invalid OTP. Please try again. (Enter 1234)");
         }
       } else if (otpVerified) {
-        // Step 3: Final Submit (Create Account)
+        // Step 3: Final Submit (Create User in MongoDB)
         if (formData.password !== formData.confirmPassword) {
           alert("Passwords do not match!");
           return;
         }
         console.log("Account Created: ", formData);
 
-        // 🔥 Trigger Heart & Rose Explosion Animation then navigate after 6 seconds (Double time)
+        /* 🔥 Create Account API Call Example:
+        await axios.post('/api/auth/register', {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password
+        });
+        */
+
         setShowSuccessHearts(true);
         setTimeout(() => {
           navigate("/profile-setup");
-        }, 6000); // 6 Second Loading Time
+        }, 6000);
       }
     }
   };
 
-  // Jab user tab switch kare (Login -> Signup) toh OTP state reset kar do
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
     setOtpSent(false);
@@ -135,8 +191,8 @@ const Login = () => {
   };
 
   return (
-    <>
-      {/* Inline CSS for Magical Continuous Heart & Rose Bubbles */}
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] font-sans overflow-x-hidden relative">
+      {/* ================= INLINE CSS FOR ANIMATIONS ================= */}
       <style>{`
         @keyframes float-magical {
           0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
@@ -144,30 +200,26 @@ const Login = () => {
           80% { opacity: 1; }
           100% { transform: translateY(-120vh) scale(1.5) rotate(180deg); opacity: 0; }
         }
-        .animate-float-magical {
-          animation: float-magical linear forwards;
-        }
+        .animate-float-magical { animation: float-magical linear forwards; }
+        
         @keyframes gentle-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-20px) scale(1.05); }
         }
-        .animate-gentle {
-          animation: gentle-bounce 4s ease-in-out infinite;
-        }
+        .animate-gentle { animation: gentle-bounce 4s ease-in-out infinite; }
       `}</style>
 
-      {/* CONTINUOUS SUCCESS MAGICAL EXPLOSION (Hearts + Red Roses) */}
+      {/* ================= SUCCESS HEART BUBBLES ================= */}
       {showSuccessHearts && (
         <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
           {[...Array(70)].map((_, i) => {
-            // Mix of Dark Pink, Light Pink, and Deep Red Roses
-            const isRose = i % 4 === 0; // Har 4th item ek Rose (Phool) hoga
-            const colors = ["#e02c5a", "#fbcfe8", "#be123c", "#fb7185"]; // Dark Pink, Light Pink, Deep Red, Soft Red
+            const isRose = i % 4 === 0;
+            const colors = ["#e02c5a", "#fbcfe8", "#be123c", "#fb7185"];
             const color = colors[i % colors.length];
-            const size = Math.random() * 30 + 20; // 20px se 50px tak random size
-            const left = Math.random() * 100; // Poori screen ki width par random
-            const delay = Math.random() * 5; // 0 se 5s ke beech lagaatar niklenge (kyunki ab 6s tak chalega)
-            const duration = Math.random() * 2 + 2; // 2 se 4s lagayenge upar jaane me
+            const size = Math.random() * 30 + 20;
+            const left = Math.random() * 100;
+            const delay = Math.random() * 5;
+            const duration = Math.random() * 2 + 2;
 
             return (
               <div
@@ -175,7 +227,7 @@ const Login = () => {
                 className="absolute animate-float-magical drop-shadow-xl"
                 style={{
                   left: `${left}%`,
-                  bottom: "-100px", // Screen ke theek niche se start hoga taaki ruke hue na dikhein
+                  bottom: "-100px",
                   animationDuration: `${duration}s`,
                   animationDelay: `${delay}s`,
                 }}
@@ -186,14 +238,14 @@ const Login = () => {
                     color="#dc2626"
                     fill="#dc2626"
                     strokeWidth={1}
-                  /> // Beautiful Red Rose
+                  />
                 ) : (
                   <Heart
                     size={size}
                     color={color}
                     fill={color}
                     strokeWidth={1}
-                  /> // Magical Hearts
+                  />
                 )}
               </div>
             );
@@ -201,77 +253,93 @@ const Login = () => {
         </div>
       )}
 
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* MAGICAL ROMANTIC BACKGROUND */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-          <div className="absolute -top-[20%] -right-[10%] w-[500px] h-[500px] rounded-full bg-[#e02c5a]/10 blur-[90px]"></div>
-          <div className="absolute -bottom-[20%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fbbf24]/10 blur-[90px]"></div>
-          <div className="absolute top-[30%] left-[5%] w-[300px] h-[300px] rounded-full bg-rose-200/20 blur-[60px]"></div>
+      {/* ================= MAGICAL ROMANTIC BACKGROUND (20-30 ICONS) ================= */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        {/* Soft Glowing Orbs */}
+        <div className="absolute -top-[10%] -right-[5%] w-[400px] h-[400px] rounded-full bg-[#e02c5a]/10 blur-[90px]"></div>
+        <div className="absolute top-[40%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fbbf24]/10 blur-[90px]"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] rounded-full bg-rose-200/20 blur-[60px]"></div>
 
-          {/* Floating Vibe Icons */}
+        {/* 25-30 Dynamic Colorful Floating Icons */}
+        {bgElements.map((el) => (
           <div
-            className="absolute top-[15%] left-[10%] opacity-20 animate-gentle"
-            style={{ animationDelay: "0s" }}
+            key={el.id}
+            className="absolute opacity-20 animate-gentle"
+            style={{
+              left: `${el.left}%`,
+              top: `${el.top}%`,
+              animationDelay: `${el.delay}s`,
+              animationDuration: `${el.duration}s`,
+            }}
           >
-            <Heart
-              size={60}
-              fill="#e02c5a"
-              color="#e02c5a"
-              className="-rotate-12"
+            {el.type === "heart" && (
+              <Heart
+                size={el.size}
+                fill={el.color}
+                color={el.color}
+                className="rotate-12"
+              />
+            )}
+            {el.type === "flower" && (
+              <Flower2 size={el.size} color={el.color} strokeWidth={1.5} />
+            )}
+            {el.type === "sparkle" && (
+              <Sparkles size={el.size} color={el.color} strokeWidth={1.5} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ================= HEADER (NAVBAR) ================= */}
+      <nav className="w-full z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-rose-100 relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 md:py-4 flex items-center justify-between">
+          <RouterLink
+            to="/"
+            className="relative flex flex-col items-start decoration-transparent"
+          >
+            <img
+              src="https://ik.imagekit.io/dlolttjjd/Shadi_assets/colourlogotext.webp?updatedAt=1779353927500"
+              alt="Local Shaadi Logo"
+              className="h-10 md:h-12 w-auto object-contain"
             />
-          </div>
-          <div
-            className="absolute bottom-[20%] right-[10%] opacity-20 animate-gentle"
-            style={{ animationDelay: "1s" }}
-          >
-            <Heart
-              size={80}
-              fill="#fbbf24"
-              color="#fbbf24"
-              className="rotate-12"
-            />
-          </div>
-          <div className="absolute top-[40%] right-[15%] opacity-15 animate-pulse">
-            <Flower2 size={50} color="#e02c5a" strokeWidth={1.5} />
-          </div>
-          <div
-            className="absolute bottom-[30%] left-[15%] opacity-30 animate-gentle"
-            style={{ animationDelay: "2s" }}
-          >
-            <Sparkles size={40} color="#fbbf24" strokeWidth={1.5} />
+          </RouterLink>
+
+          <div className="flex items-center gap-4 md:gap-8">
+            <div className="hidden md:flex items-center gap-6 font-medium text-gray-700">
+              <a
+                href="#about"
+                className="hover:text-[#e02c5a] transition-colors cursor-pointer"
+              >
+                About us
+              </a>
+              <RouterLink
+                to="/help"
+                className="hover:text-[#e02c5a] transition-colors"
+              >
+                Help
+              </RouterLink>
+            </div>
+            {/* Show alternative text based on state */}
+            <button
+              onClick={toggleAuthMode}
+              className="text-[#e02c5a] font-bold hover:underline transition-all text-sm md:text-base"
+            >
+              {isLogin ? "Create an Account" : "Sign In instead"}
+            </button>
           </div>
         </div>
+      </nav>
 
-        <div className="max-w-md w-full bg-white/90 backdrop-blur-md rounded-[40px] shadow-[0_15px_50px_rgba(224,44,90,0.15)] p-8 md:p-10 border-2 border-[#e02c5a]/20 relative z-10 transition-all duration-500 hover:shadow-[0_20px_60px_rgba(224,44,90,0.2)]">
-          {/* Magical Header Tag */}
+      {/* ================= MAIN LOGIN/REGISTER SECTION ================= */}
+      <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-[40px] shadow-[0_15px_50px_rgba(224,44,90,0.15)] p-8 md:p-10 border-2 border-rose-100 relative transition-all duration-500 hover:shadow-[0_20px_60px_rgba(224,44,90,0.2)]">
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white px-6 py-1.5 rounded-full text-xs font-bold tracking-widest shadow-lg flex items-center gap-2">
             <Sparkles size={14} /> FIND YOUR FOREVER
           </div>
 
-          <div className="flex justify-center mb-8 mt-4">
-            {/* PURANA TEXT LOGO (Safe rakha gaya hai comment ke andar)
-            <div className="relative flex flex-col items-center">
-              <span className="text-[#821511] text-[0.65rem] font-bold uppercase tracking-widest absolute -top-2 -left-1">
-                L<span className="text-[#eab308]">O</span>CAL
-              </span>
-              <div className="flex items-baseline">
-                <span className="text-[#e02c5a] text-4xl font-extrabold tracking-tight drop-shadow-sm">Shaadi</span>
-                <span className="text-[#821511] text-2xl font-bold">.in</span>
-              </div>
-            </div>
-            */}
-
-            {/* NAYA IMAGE LOGO */}
-            <img
-              src="https://ik.imagekit.io/dlolttjjd/Shadi_assets/colourlogotext.webp?updatedAt=1779353927500"
-              alt="Local Shaadi Logo"
-              className="h-12 w-auto object-contain"
-            />
-          </div>
-
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 font-serif tracking-wide">
-              {isLogin ? "Welcome Back, Love!" : "Begin Your Beautiful Journey"}
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-3xl font-bold text-[#821511] font-serif tracking-wide">
+              {isLogin ? "Welcome Back, Love!" : "Begin Your Journey"}
             </h2>
             <p className="text-sm text-gray-500 mt-2 font-medium">
               {isLogin
@@ -335,10 +403,9 @@ const Login = () => {
               </>
             )}
 
-            {/* ================= REGISTRATION FORM (STEP-BY-STEP) ================= */}
+            {/* ================= REGISTRATION FORM ================= */}
             {!isLogin && (
               <>
-                {/* STEP 1: Name, Email, Phone (Hides when OTP is verified) */}
                 {!otpVerified && (
                   <>
                     <div className="relative group">
@@ -401,7 +468,6 @@ const Login = () => {
                   </>
                 )}
 
-                {/* STEP 2: OTP Input (Appears after Send OTP) */}
                 {otpSent && !otpVerified && (
                   <div className="relative group animate-in fade-in zoom-in duration-300 mt-2">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -415,13 +481,12 @@ const Login = () => {
                       maxLength="4"
                       disabled={showSuccessHearts}
                       placeholder="Enter 4-digit OTP (Test: 1234)"
-                      className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-[#e02c5a]/40 rounded-2xl text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#e02c5a]/60 focus:border-[#e02c5a] transition-all shadow-[0_0_20px_rgba(224,44,90,0.15)] disabled:opacity-60"
+                      className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-[#e02c5a]/40 rounded-2xl text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#e02c5a]/60 focus:border-[#e02c5a] transition-all shadow-sm disabled:opacity-60"
                       required
                     />
                   </div>
                 )}
 
-                {/* STEP 3: Passwords (Appears after OTP is verified) */}
                 {otpVerified && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="flex items-center gap-2 mb-2 justify-center bg-green-50/80 text-green-700 py-2.5 rounded-xl text-sm font-semibold border border-green-200">
@@ -497,7 +562,6 @@ const Login = () => {
               </>
             )}
 
-            {/* DYNAMIC SUBMIT BUTTON WITH MAGICAL LOADING STATE */}
             <div className="pt-4 relative z-10">
               <button
                 type="submit"
@@ -537,7 +601,6 @@ const Login = () => {
             </div>
           </form>
 
-          {/* DYNAMIC TEXT FOR REGISTRATION/LOGIN TOGGLE */}
           <div className="mt-8 text-center pt-4 border-t border-rose-100 relative z-10">
             <div className="flex flex-col gap-1.5 items-center">
               <span className="text-sm text-gray-600 font-medium">
@@ -558,8 +621,159 @@ const Login = () => {
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </main>
+
+      {/* ================= FOOTER ================= */}
+      <footer className="w-full bg-white/90 backdrop-blur-md border-t border-rose-100 pt-16 pb-8 relative z-10 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-12 mb-12">
+            <div className="flex flex-col items-start">
+              <RouterLink
+                to="/"
+                className="relative flex flex-col items-start decoration-transparent mb-5 mt-2"
+              >
+                <img
+                  src="https://ik.imagekit.io/dlolttjjd/Shadi_assets/colourlogotext.webp?updatedAt=1779353927500"
+                  alt="Local Shaadi Logo"
+                  className="h-10 md:h-12 w-auto object-contain"
+                />
+              </RouterLink>
+              <p className="text-gray-600 text-sm leading-relaxed mb-6 font-medium">
+                Trusted by millions. Because every beautiful journey begins with
+                the right choice. Find your perfect partner from your own
+                community.
+              </p>
+              <div className="flex items-center gap-3">
+                <a
+                  href="#"
+                  className="w-10 h-10 rounded-full bg-[#fff0f5] text-[#e02c5a] flex items-center justify-center hover:bg-[#e02c5a] hover:text-white transition-all"
+                >
+                  <Heart size={18} />
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-[#821511] font-bold text-lg mb-5 font-serif">
+                Quick Links
+              </h3>
+              <ul className="flex flex-col gap-3.5">
+                <li>
+                  <a
+                    href="/about"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium transition-colors"
+                  >
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/search"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium transition-colors"
+                  >
+                    Find Matches
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/premium"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium transition-colors"
+                  >
+                    Premium Plans
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-[#821511] font-bold text-lg mb-5 font-serif">
+                Support
+              </h3>
+              <ul className="flex flex-col gap-3.5">
+                <li>
+                  <a
+                    href="/help"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium transition-colors"
+                  >
+                    Help Center
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/privacy"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/terms"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="text-[#821511] font-bold text-lg mb-5 font-serif">
+                Contact Us
+              </h3>
+              <ul className="flex flex-col gap-4">
+                <li className="flex items-center gap-3">
+                  <MapPin size={16} className="text-[#e02c5a]" />
+                  <span className="text-gray-600 text-sm font-medium">
+                    Sant Kabir Nagar, UP, India
+                  </span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Phone size={16} className="text-[#e02c5a]" />
+                  <a
+                    href="tel:+919005520320"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium"
+                  >
+                    +91 90055 20320
+                  </a>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Mail size={16} className="text-[#e02c5a]" />
+                  <a
+                    href="mailto:support@localshaadi.in"
+                    className="text-gray-600 hover:text-[#e02c5a] text-sm font-medium"
+                  >
+                    support@localshaadi.in
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-rose-100 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm font-medium">
+            <p>
+              © {new Date().getFullYear()} Local Shaadi.in. All rights reserved.
+            </p>
+            <div className="flex items-center gap-1.5">
+              Designed with{" "}
+              <Heart
+                size={14}
+                className="text-[#e02c5a] fill-[#e02c5a] animate-pulse"
+              />{" "}
+              by
+              <a
+                href="https://codewebx.in"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#821511] hover:text-[#e02c5a] font-bold transition-colors"
+              >
+                codewebx.in
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 
