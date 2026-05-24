@@ -17,19 +17,14 @@ import {
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 
 const Login = () => {
-  // 🔥 Default 1st screen ab Login ki hogi (true set kiya hai)
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // 🔥 Registration Steps State
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-
-  // 🔥 Success Animation & Loading State
   const [showSuccessHearts, setShowSuccessHearts] = useState(false);
 
-  // 🔥 Form Data State (Ekdum Backend Ready for Node/Express/MongoDB)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,11 +34,9 @@ const Login = () => {
     confirmPassword: "",
   });
 
-  // Background floating elements generation
   const [bgElements, setBgElements] = useState([]);
 
   useEffect(() => {
-    // Generate 30 random colorful love elements for background
     const elements = [...Array(30)].map((_, i) => {
       const types = ["heart", "flower", "sparkle"];
       const colors = ["#e02c5a", "#fbbf24", "#ec4899", "#f43f5e", "#fbd38d"];
@@ -51,11 +44,11 @@ const Login = () => {
         id: i,
         type: types[Math.floor(Math.random() * types.length)],
         color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 30 + 20, // 20px to 50px
-        left: Math.random() * 100, // 0% to 100%
-        top: Math.random() * 100, // 0% to 100%
-        delay: Math.random() * 5, // 0s to 5s
-        duration: Math.random() * 3 + 3, // 3s to 6s
+        size: Math.random() * 30 + 20,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        delay: Math.random() * 5,
+        duration: Math.random() * 3 + 3,
       };
     });
     setBgElements(elements);
@@ -73,7 +66,8 @@ const Login = () => {
       }
     } else if (name === "otp") {
       const onlyNums = value.replace(/[^0-9]/g, "");
-      if (onlyNums.length <= 4) {
+      // 🔥 Changed to 6 for the 000000 bypass
+      if (onlyNums.length <= 6) {
         setFormData({ ...formData, [name]: onlyNums });
       }
     } else {
@@ -81,96 +75,131 @@ const Login = () => {
     }
   };
 
+  // 🔥 FULLY CONNECTED BACKEND LOGIC
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const API_BASE_URL = "http://localhost:5001/api/auth";
 
     if (isLogin) {
-      // ==========================================
-      // 🟢 BACKEND READY: LOGIN LOGIC
-      // ==========================================
       if (formData.phone.length !== 10) {
         alert("Please enter a valid 10-digit mobile number.");
         return;
       }
 
-      console.log("Logging in with: ", formData.phone, formData.password);
-
-      /* 🔥 Node/Express API Call Example yahan aayega:
       try {
-        const response = await axios.post('/api/auth/login', {
-          phone: formData.phone,
-          password: formData.password
+        const response = await fetch(`${API_BASE_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: formData.phone,
+            password: formData.password,
+          }),
         });
-        if(response.data.success) {
-           // Save token, trigger animation
+
+        const data = await response.json();
+
+        if (data.success) {
+          localStorage.setItem("token", data.token); // Token Save Kar Diya
+          setShowSuccessHearts(true);
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 6000);
+        } else {
+          alert(data.message || "Invalid phone number or password.");
         }
-      } catch (error) { ... }
-      */
-
-      setShowSuccessHearts(true);
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 6000);
+      } catch (error) {
+        console.error("Login Error:", error);
+        alert("Server Error. Please ensure Backend is running.");
+      }
     } else {
-      // ==========================================
-      // 🟢 BACKEND READY: REGISTRATION LOGIC
-      // ==========================================
-
       if (!otpSent) {
-        // Step 1: Send OTP via API
         if (formData.phone.length !== 10) {
           alert("Please enter a valid 10-digit mobile number.");
           return;
         }
 
-        console.log("Sending OTP to", formData.phone);
-        /* 🔥 Send OTP API Call Example:
-        await axios.post('/api/auth/send-otp', { phone: formData.phone });
-        */
+        try {
+          const response = await fetch(`${API_BASE_URL}/send-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: formData.phone }),
+          });
 
-        setOtpSent(true);
-        alert(
-          `OTP sent successfully to ${formData.phone}! (Use 1234 for testing)`,
-        );
+          const data = await response.json();
+
+          if (data.success) {
+            setOtpSent(true);
+            alert(
+              data.message || `OTP sent successfully to ${formData.phone}!`,
+            );
+          } else {
+            alert(data.message || "Failed to send OTP.");
+          }
+        } catch (error) {
+          console.error("OTP Send Error:", error);
+          alert("Server Error. Please check backend.");
+        }
       } else if (otpSent && !otpVerified) {
-        // Step 2: Verify OTP via API
-        if (formData.otp.length !== 4) {
-          alert("Please enter a 4-digit OTP.");
+        if (formData.otp.length < 6) {
+          alert("Please enter a valid 6-digit OTP.");
           return;
         }
 
-        /* 🔥 Verify OTP API Call Example:
-        const response = await axios.post('/api/auth/verify-otp', { phone: formData.phone, otp: formData.otp });
-        if(response.data.valid) { setOtpVerified(true); }
-        */
+        try {
+          const response = await fetch(`${API_BASE_URL}/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: formData.phone,
+              otp: formData.otp,
+            }),
+          });
 
-        if (formData.otp === "1234") {
-          setOtpVerified(true);
-          alert("Phone number verified successfully!");
-        } else {
-          alert("Invalid OTP. Please try again. (Enter 1234)");
+          const data = await response.json();
+
+          if (data.success) {
+            setOtpVerified(true);
+            alert("Phone number verified successfully!");
+          } else {
+            alert(data.message || "Invalid OTP. Please try again.");
+          }
+        } catch (error) {
+          console.error("OTP Verify Error:", error);
+          alert("Server Error. Please check backend.");
         }
       } else if (otpVerified) {
-        // Step 3: Final Submit (Create User in MongoDB)
         if (formData.password !== formData.confirmPassword) {
           alert("Passwords do not match!");
           return;
         }
-        console.log("Account Created: ", formData);
 
-        /* 🔥 Create Account API Call Example:
-        await axios.post('/api/auth/register', {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password
-        });
-        */
+        try {
+          const response = await fetch(`${API_BASE_URL}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: formData.name,
+              email: formData.email,
+              phone: formData.phone,
+              password: formData.password,
+            }),
+          });
 
-        setShowSuccessHearts(true);
-        setTimeout(() => {
-          navigate("/profile-setup");
-        }, 6000);
+          const data = await response.json();
+
+          if (data.success) {
+            localStorage.setItem("token", data.token); // Token Save Kar Diya
+            setShowSuccessHearts(true);
+            setTimeout(() => {
+              navigate("/profile-setup");
+            }, 6000);
+          } else {
+            alert(data.message || "Registration Failed.");
+          }
+        } catch (error) {
+          console.error("Register Error:", error);
+          alert("Server Error. Please check backend.");
+        }
       }
     }
   };
@@ -192,7 +221,6 @@ const Login = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] font-sans overflow-x-hidden relative">
-      {/* ================= INLINE CSS FOR ANIMATIONS ================= */}
       <style>{`
         @keyframes float-magical {
           0% { transform: translateY(0) scale(0.5) rotate(0deg); opacity: 0; }
@@ -209,7 +237,6 @@ const Login = () => {
         .animate-gentle { animation: gentle-bounce 4s ease-in-out infinite; }
       `}</style>
 
-      {/* ================= SUCCESS HEART BUBBLES ================= */}
       {showSuccessHearts && (
         <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
           {[...Array(70)].map((_, i) => {
@@ -253,14 +280,11 @@ const Login = () => {
         </div>
       )}
 
-      {/* ================= MAGICAL ROMANTIC BACKGROUND (20-30 ICONS) ================= */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        {/* Soft Glowing Orbs */}
         <div className="absolute -top-[10%] -right-[5%] w-[400px] h-[400px] rounded-full bg-[#e02c5a]/10 blur-[90px]"></div>
         <div className="absolute top-[40%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fbbf24]/10 blur-[90px]"></div>
         <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] rounded-full bg-rose-200/20 blur-[60px]"></div>
 
-        {/* 25-30 Dynamic Colorful Floating Icons */}
         {bgElements.map((el) => (
           <div
             key={el.id}
@@ -290,7 +314,6 @@ const Login = () => {
         ))}
       </div>
 
-      {/* ================= HEADER (NAVBAR) ================= */}
       <nav className="w-full z-50 bg-white/80 backdrop-blur-md shadow-sm border-b border-rose-100 relative">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 md:py-4 flex items-center justify-between">
           <RouterLink
@@ -319,7 +342,6 @@ const Login = () => {
                 Help
               </RouterLink>
             </div>
-            {/* Show alternative text based on state */}
             <button
               onClick={toggleAuthMode}
               className="text-[#e02c5a] font-bold hover:underline transition-all text-sm md:text-base"
@@ -330,7 +352,6 @@ const Login = () => {
         </div>
       </nav>
 
-      {/* ================= MAIN LOGIN/REGISTER SECTION ================= */}
       <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-md w-full bg-white/95 backdrop-blur-md rounded-[40px] shadow-[0_15px_50px_rgba(224,44,90,0.15)] p-8 md:p-10 border-2 border-rose-100 relative transition-all duration-500 hover:shadow-[0_20px_60px_rgba(224,44,90,0.2)]">
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white px-6 py-1.5 rounded-full text-xs font-bold tracking-widest shadow-lg flex items-center gap-2">
@@ -351,7 +372,6 @@ const Login = () => {
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* ================= LOGIN FORM ================= */}
             {isLogin && (
               <>
                 <div className="relative group">
@@ -403,7 +423,6 @@ const Login = () => {
               </>
             )}
 
-            {/* ================= REGISTRATION FORM ================= */}
             {!isLogin && (
               <>
                 {!otpVerified && (
@@ -478,9 +497,9 @@ const Login = () => {
                       name="otp"
                       value={formData.otp}
                       onChange={handleChange}
-                      maxLength="4"
+                      maxLength="6"
                       disabled={showSuccessHearts}
-                      placeholder="Enter 4-digit OTP (Test: 1234)"
+                      placeholder="Enter 6-digit OTP (Test: 000000)"
                       className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-[#e02c5a]/40 rounded-2xl text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#e02c5a]/60 focus:border-[#e02c5a] transition-all shadow-sm disabled:opacity-60"
                       required
                     />
