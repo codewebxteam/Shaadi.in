@@ -78,7 +78,11 @@ const Login = () => {
   // 🔥 FULLY CONNECTED BACKEND LOGIC
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const API_BASE_URL = "http://localhost:5001/api/auth";
+
+    // 🔥 NAYA CODE: Vercel env variable ya fir local URL dono ko handle karega
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+      ? import.meta.env.VITE_API_BASE_URL + "/auth"
+      : "http://localhost:5001/api/auth";
 
     if (isLogin) {
       if (formData.phone.length !== 10) {
