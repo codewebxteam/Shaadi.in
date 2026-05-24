@@ -21,7 +21,7 @@ const PremiumPlans = () => {
       features: [
         "Verified Profiles",
         "100 Interests",
-        "Chat Support",
+        "Admin Profile Guidance", // 🔥 Updated: No chat, admin will guide
         "Basic Visibility",
       ],
       color: "from-gray-300 to-gray-100",
@@ -34,7 +34,7 @@ const PremiumPlans = () => {
       features: [
         "Verified Profiles",
         "Unlimited Interests",
-        "Direct Calling",
+        "Admin Arranged Meetings", // 🔥 Updated: Admin fixes meetings
         "Top Visibility",
         "Priority Support",
       ],
@@ -48,9 +48,9 @@ const PremiumPlans = () => {
       duration: "12 Months",
       features: [
         "All Gold Features",
-        "Personalized Matchmaker",
+        "Admin Personal Visit", // 🔥 Updated: Admin khud jaake milega
+        "Family Meeting Setup", // 🔥 Updated: Admin baat-chit karayega
         "Background Verification",
-        "Incognito Mode",
         "VIP Badge",
       ],
       color: "from-rose-400 to-pink-300",
@@ -70,68 +70,68 @@ const PremiumPlans = () => {
         </div>
       </div>
 
-      {/* Navbar (Same as previous) */}
-      <nav className="bg-rose-50/90 backdrop-blur-md border-b border-rose-100 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <img
-            onClick={() => navigate("/dashboard")}
-            src="https://ik.imagekit.io/dlolttjjd/Shadi_assets/colourlogotext.webp?updatedAt=1779353927500"
-            alt="Logo"
-            className="h-11 w-auto object-contain cursor-pointer"
-          />
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="font-bold text-[#821511] hover:text-[#e02c5a]"
-          >
-            Back to Dashboard
-          </button>
-        </div>
-      </nav>
+      {/* 🔥 Hardcoded Navbar removed as requested! Global Navbar will take its place. */}
 
-      <div className="max-w-6xl mx-auto px-4 py-16 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 py-16 relative z-10 pt-24 md:pt-16">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#821511] mb-4">
             Choose Your Premium Plan
           </h1>
           <p className="text-gray-600 font-medium text-lg">
-            Unlock your perfect match with our specially curated plans.
+            Complete support from our team to find your perfect match.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end mt-10">
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`bg-white rounded-3xl p-8 shadow-[0_15px_50px_rgba(0,0,0,0.08)] border-2 ${plan.featured ? "border-[#e02c5a] scale-105 shadow-2xl" : "border-rose-100"}`}
+              className={`bg-white rounded-3xl p-8 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_60px_rgba(224,44,90,0.15)] ${
+                plan.featured
+                  ? "border-2 border-[#e02c5a] scale-105 shadow-2xl relative z-10"
+                  : "border border-rose-100 shadow-[0_15px_50px_rgba(0,0,0,0.05)]"
+              }`}
             >
               {plan.featured && (
-                <div className="bg-[#e02c5a] text-white text-xs font-bold px-4 py-1 rounded-full absolute -top-3 left-1/2 -translate-x-1/2">
+                <div className="bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white text-xs font-bold px-5 py-1.5 rounded-full absolute -top-4 left-1/2 -translate-x-1/2 shadow-lg tracking-wider">
                   MOST POPULAR
                 </div>
               )}
 
-              <div className="mb-6">{plan.icon}</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              <div className="mb-6 flex justify-center bg-gray-50/50 w-20 h-20 mx-auto rounded-full items-center shadow-inner">
+                {plan.icon}
+              </div>
+              <h3 className="text-2xl font-bold text-center text-gray-800 mb-2">
                 {plan.name}
               </h3>
-              <div className="text-4xl font-extrabold text-[#821511] mb-1">
+              <div className="text-4xl font-extrabold text-center text-[#821511] mb-1">
                 ₹{plan.price}
               </div>
-              <p className="text-gray-500 font-bold mb-6">{plan.duration}</p>
+              <p className="text-gray-500 text-center font-bold mb-8">
+                {plan.duration}
+              </p>
 
               <ul className="space-y-4 mb-8">
                 {plan.features.map((feat, i) => (
                   <li
                     key={i}
-                    className="flex items-center gap-3 text-gray-700 font-medium"
+                    className="flex items-center gap-3 text-gray-700 font-medium text-sm md:text-base"
                   >
-                    <CheckCircle size={18} className="text-green-500" /> {feat}
+                    <CheckCircle
+                      size={20}
+                      className="text-green-500 shrink-0"
+                    />{" "}
+                    {feat}
                   </li>
                 ))}
               </ul>
 
               <button
-                className={`w-full py-4 rounded-xl font-bold transition-all ${plan.featured ? "bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white shadow-lg" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}
+                className={`w-full py-4 rounded-2xl font-bold transition-all duration-300 ${
+                  plan.featured
+                    ? "bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white shadow-[0_10px_25px_rgba(224,44,90,0.3)] hover:shadow-[0_15px_35px_rgba(224,44,90,0.4)]"
+                    : "bg-rose-50 text-[#e02c5a] border border-rose-100 hover:bg-[#e02c5a] hover:text-white hover:border-[#e02c5a]"
+                }`}
               >
                 Select {plan.name}
               </button>

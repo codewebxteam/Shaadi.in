@@ -100,9 +100,22 @@ const Login = () => {
 
         if (data.success) {
           localStorage.setItem("token", data.token); // Token Save Kar Diya
+
+          // 🔥 NAYA CODE: Navbar ko update karne ke liye event bheja
+          window.dispatchEvent(new Event("authChange"));
+
           setShowSuccessHearts(true);
+
+          // 🔥 PROFILE SETUP REDIRECT LOGIC
+          // Backend developer ko bolna ki login response me `isProfileCompleted` flag bheje
+          const isProfileComplete = data.isProfileCompleted;
+
           setTimeout(() => {
-            navigate("/dashboard");
+            if (isProfileComplete) {
+              navigate("/dashboard");
+            } else {
+              navigate("/profile-setup"); // Aadha form bhara hai toh seedha onboarding par
+            }
           }, 6000);
         } else {
           alert(data.message || "Invalid phone number or password.");
@@ -189,9 +202,13 @@ const Login = () => {
 
           if (data.success) {
             localStorage.setItem("token", data.token); // Token Save Kar Diya
+
+            // 🔥 NAYA CODE: Navbar ko update karne ke liye event bheja
+            window.dispatchEvent(new Event("authChange"));
+
             setShowSuccessHearts(true);
             setTimeout(() => {
-              navigate("/profile-setup");
+              navigate("/profile-setup"); // Naye user ko 1st time profile setup pe bhejna
             }, 6000);
           } else {
             alert(data.message || "Registration Failed.");
