@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   User,
   Users,
@@ -21,13 +21,18 @@ const PersonalProfile = () => {
   // 🔥 Photo aur Crop Modal states
   const [profileImage, setProfileImage] = useState(null);
   const [tempImage, setTempImage] = useState(null);
+  const [tempFile, setTempFile] = useState(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [imageZoom, setImageZoom] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Submit button loader
 
   // 🔥 Image Panning (Dragging) States
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // 🔥 Magical Background Elements State
+  const [bgElements, setBgElements] = useState([]);
 
   const [formData, setFormData] = useState({
     profileFor: "",
@@ -38,7 +43,7 @@ const PersonalProfile = () => {
     gender: "",
     maritalStatus: "",
     height: "",
-    weight: "", // Weight field
+    weight: "",
     complexion: "",
     state: "",
     district: "",
@@ -56,6 +61,33 @@ const PersonalProfile = () => {
 
   const navigate = useNavigate();
 
+  // 🔥 Background Animation Setup
+  useEffect(() => {
+    const elements = [...Array(40)].map((_, i) => {
+      const types = ["heart", "flower", "sparkle"];
+      const colors = [
+        "#e02c5a",
+        "#fbbf24",
+        "#ec4899",
+        "#f43f5e",
+        "#fbd38d",
+        "#fb7185",
+        "#fbcfe8",
+      ];
+      return {
+        id: i,
+        type: types[Math.floor(Math.random() * types.length)],
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 25 + 15,
+        left: Math.random() * 100,
+        top: Math.random() * 100,
+        delay: Math.random() * 5,
+        duration: Math.random() * 4 + 3,
+      };
+    });
+    setBgElements(elements);
+  }, []);
+
   // Image Upload Handler (5MB Limit)
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -66,8 +98,9 @@ const PersonalProfile = () => {
         e.target.value = "";
         return;
       }
-      setDragOffset({ x: 0, y: 0 }); // Nayi image aaye toh drag reset ho jaye
+      setDragOffset({ x: 0, y: 0 });
       setTempImage(URL.createObjectURL(file));
+      setTempFile(file); // 🔥 Real file ko state me rakha hai FormData ke liye
       setImageZoom(1);
       setShowCropModal(true);
     }
@@ -95,6 +128,7 @@ const PersonalProfile = () => {
   const handleSaveCrop = () => {
     setProfileImage(tempImage);
     setShowCropModal(false);
+    // Base64 conversion hata diya, ab direct tempFile (File Object) bhejenge
   };
 
   // 🔥 Dynamic Sibling Generator
@@ -162,17 +196,75 @@ const PersonalProfile = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  // 🔥 REAL-TIME BACKEND SUBMIT LOGIC (FormData with ImageKit integration)
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!profileImage) {
+    if (!profileImage || !tempFile) {
       alert("Please upload a profile picture to continue.");
       return;
     }
-    console.log("Profile Data Submitted: ", formData);
-    alert(
-      "Profile details saved successfully! Your beautiful journey begins now.",
-    );
-    navigate("/dashboard");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Your session has expired. Please login again.");
+      navigate("/login");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+      ? import.meta.env.VITE_API_BASE_URL + "/auth"
+      : "http://localhost:5001/api/auth";
+
+    try {
+      // 🔥 JSON ki jagah FormData use kar rahe hain
+      const form = new FormData();
+
+      Object.keys(formData).forEach((key) => {
+        if (key === "siblings") {
+          form.append(key, JSON.stringify(formData[key])); // Array ko stringify
+        } else {
+          form.append(key, formData[key]);
+        }
+      });
+
+      // ImageKit upload ke liye original file object append kiya
+      form.append("profileImage", tempFile);
+
+      const response = await fetch(`${API_BASE_URL}/setup-profile`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Content-Type yahan se hata diya hai taaki browser multipart/form-data boundary khud set kare
+        },
+        body: form,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 🔥 LocalStorage update karna taaki ProtectedRoute allow kare aur navbar me photo aaye
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        user.isProfileComplete = true;
+        if (data.user?.profileImage) {
+          user.profileImage = data.user.profileImage; // Database wala ImageKit URL
+        }
+        localStorage.setItem("user", JSON.stringify(user));
+
+        alert(
+          "Profile details saved successfully! Your beautiful journey begins now.",
+        );
+        navigate("/dashboard");
+      } else {
+        alert(data.message || "Failed to save profile details.");
+      }
+    } catch (error) {
+      console.error("Profile Setup Error:", error);
+      alert("Server Error. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputClass =
@@ -182,52 +274,48 @@ const PersonalProfile = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] font-sans relative overflow-x-hidden pb-12">
       {/* ================= MAGICAL ROMANTIC BACKGROUND ================= */}
       <style>{`
-        @keyframes gentle-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
+        @keyframes gentle-float {
+          0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+          50% { transform: translateY(-25px) scale(1.05) rotate(5deg); }
         }
-        .animate-gentle {
-          animation: gentle-bounce 4s ease-in-out infinite;
+        .animate-magical-bg {
+          animation: gentle-float ease-in-out infinite;
         }
       `}</style>
 
+      {/* Colorful Floating Elements in Background */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute -top-[10%] -right-[5%] w-[400px] h-[400px] rounded-full bg-[#e02c5a]/10 blur-[90px]"></div>
         <div className="absolute top-[40%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fbbf24]/10 blur-[90px]"></div>
         <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] rounded-full bg-rose-200/20 blur-[60px]"></div>
 
-        {/* Floating Vibe Icons */}
-        <div
-          className="absolute top-[15%] left-[5%] opacity-15 animate-gentle"
-          style={{ animationDelay: "0s" }}
-        >
-          <Heart
-            size={50}
-            fill="#e02c5a"
-            color="#e02c5a"
-            className="-rotate-12"
-          />
-        </div>
-        <div
-          className="absolute top-[60%] right-[8%] opacity-15 animate-gentle"
-          style={{ animationDelay: "1s" }}
-        >
-          <Heart
-            size={70}
-            fill="#fbbf24"
-            color="#fbbf24"
-            className="rotate-12"
-          />
-        </div>
-        <div className="absolute top-[30%] right-[15%] opacity-10 animate-pulse">
-          <Flower2 size={40} color="#e02c5a" strokeWidth={1.5} />
-        </div>
-        <div
-          className="absolute bottom-[20%] left-[10%] opacity-20 animate-gentle"
-          style={{ animationDelay: "2s" }}
-        >
-          <Sparkles size={35} color="#fbbf24" strokeWidth={1.5} />
-        </div>
+        {bgElements.map((el) => (
+          <div
+            key={el.id}
+            className="absolute opacity-20 animate-magical-bg"
+            style={{
+              left: `${el.left}%`,
+              top: `${el.top}%`,
+              animationDelay: `${el.delay}s`,
+              animationDuration: `${el.duration}s`,
+            }}
+          >
+            {el.type === "heart" && (
+              <Heart
+                size={el.size}
+                fill={el.color}
+                color={el.color}
+                className="rotate-12"
+              />
+            )}
+            {el.type === "flower" && (
+              <Flower2 size={el.size} color={el.color} strokeWidth={1.5} />
+            )}
+            {el.type === "sparkle" && (
+              <Sparkles size={el.size} color={el.color} strokeWidth={1.5} />
+            )}
+          </div>
+        ))}
       </div>
 
       {/* ================= CROP MODAL (SQUARE PROFILE WITH PAN/DRAG) ================= */}
@@ -299,7 +387,7 @@ const PersonalProfile = () => {
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#821511] mb-3 flex items-center justify-center gap-3">
             Complete Your Profile{" "}
-            <Sparkles className="text-[#fbbf24]" size={28} />
+            <Sparkles className="text-[#e02c5a]" size={28} />
           </h1>
           <p className="text-gray-600 font-medium max-w-xl mx-auto">
             A beautiful, detailed profile gets{" "}
@@ -313,7 +401,6 @@ const PersonalProfile = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* ================= 📸 PHOTO UPLOAD SECTION (SQUARE) ================= */}
           <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgba(224,44,90,0.06)] border border-rose-100 p-6 md:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 hover:shadow-lg transition-all relative">
-            {/* 🔥 SQUARE PROFILE PREVIEW (Rounded-2xl) */}
             <div className="relative group w-36 h-36 shrink-0 rounded-2xl border-4 border-rose-100 hover:border-[#e02c5a]/50 transition-colors bg-rose-50 flex items-center justify-center overflow-hidden shadow-sm">
               {profileImage ? (
                 <img
@@ -489,7 +576,6 @@ const PersonalProfile = () => {
                 </select>
               </div>
 
-              {/* 🔥 3 COLUMN GRID FOR HEIGHT, WEIGHT & COMPLEXION */}
               <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex flex-col">
                   <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">
@@ -531,7 +617,6 @@ const PersonalProfile = () => {
                   </select>
                 </div>
 
-                {/* 🔥 NEW FIELD: Weight */}
                 <div className="flex flex-col">
                   <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">
                     Weight (kg)
@@ -708,7 +793,7 @@ const PersonalProfile = () => {
             </div>
           </div>
 
-          {/* ================= CARD 4: CAREER & FAMILY (With Siblings) ================= */}
+          {/* ================= CARD 4: CAREER & FAMILY ================= */}
           <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgba(224,44,90,0.06)] border border-rose-100 p-6 md:p-8 hover:shadow-lg transition-all">
             <h2 className="flex items-center gap-2 text-xl font-bold text-[#821511] mb-6 border-b border-rose-100 pb-4 font-serif">
               <div className="bg-purple-50 p-2 rounded-lg text-purple-600">
@@ -778,7 +863,6 @@ const PersonalProfile = () => {
                 </div>
               </div>
 
-              {/* Number of Siblings */}
               <div className="flex flex-col">
                 <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">
                   Number of Siblings
@@ -798,14 +882,12 @@ const PersonalProfile = () => {
                 </select>
               </div>
 
-              {/* 🔥 DYNAMIC SIBLING FIELDS (Spans across the entire grid row) */}
               {formData.siblings.length > 0 && (
                 <div className="col-span-1 md:col-span-3 mt-4 bg-rose-50/50 border border-rose-100 rounded-2xl p-6 shadow-inner transition-all duration-300">
                   <h3 className="text-[#821511] font-bold mb-5 flex items-center gap-2">
                     <Users size={18} className="text-[#e02c5a]" /> Sibling
                     Details
                   </h3>
-
                   <div className="space-y-4">
                     {formData.siblings.map((sibling, index) => (
                       <div
@@ -815,7 +897,6 @@ const PersonalProfile = () => {
                         <div className="absolute top-0 left-0 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white text-[10px] font-bold px-3 py-1 rounded-br-lg rounded-tl-xl">
                           Sibling #{index + 1}
                         </div>
-
                         <div className="flex flex-col pt-3 md:pt-0">
                           <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">
                             Sibling Name
@@ -834,7 +915,6 @@ const PersonalProfile = () => {
                             className={inputClass}
                           />
                         </div>
-
                         <div className="flex flex-col pt-2 md:pt-0">
                           <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-2">
                             Marital Status
@@ -869,10 +949,20 @@ const PersonalProfile = () => {
           <div className="flex justify-end pt-6 pb-10 border-t border-rose-100">
             <button
               type="submit"
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white px-12 py-4 rounded-2xl font-bold text-[17px] tracking-wide shadow-[0_10px_25px_rgba(224,44,90,0.3)] hover:shadow-[0_15px_35px_rgba(224,44,90,0.45)] hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto"
+              disabled={isSubmitting}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] text-white px-12 py-4 rounded-2xl font-bold text-[17px] tracking-wide shadow-[0_10px_25px_rgba(224,44,90,0.3)] hover:shadow-[0_15px_35px_rgba(224,44,90,0.45)] hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto disabled:opacity-70 disabled:hover:translate-y-0"
             >
-              <CheckCircle size={22} className="animate-pulse" />
-              Save & View Matches
+              {isSubmitting ? (
+                <>
+                  <Sparkles size={22} className="animate-spin" /> Saving
+                  Profile...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={22} className="animate-pulse" /> Save &
+                  View Matches
+                </>
+              )}
             </button>
           </div>
         </form>

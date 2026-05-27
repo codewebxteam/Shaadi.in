@@ -2,6 +2,14 @@ const User = require('../models/user');
 const Otp = require('../models/Otp');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const ImageKit = require("imagekit");
+
+// 🔥 ImageKit Configuration
+const imagekit = new ImageKit({
+  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+});
 
 // Token Generate karne ka function
 const generateToken = (id) => {
@@ -14,20 +22,13 @@ exports.sendOtp = async (req, res) => {
     const { phone } = req.body;
 
     // 🔥 UNIVERSAL BYPASS LOGIC FOR TESTING
-    // Ab koi bhi number aayega toh ye pehle hi success bhej dega 
-    // (Jab live karna ho toh isko hata dena ya comment kar dena)
     return res.status(200).json({ success: true, message: 'Universal Bypass Active: OTP sent successfully (Use 000000)' });
 
-    // Generate 6-digit random OTP
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Pehle ka koi OTP ho toh delete kardo
     await Otp.deleteMany({ phone });
-
-    // DB mein naya OTP save karo
     await Otp.create({ phone, otp: generatedOtp });
 
-    // 🔥 TODO: Yahan par WhatsApp API ka code aayega OTP bhejne ke liye
+    // 🔥 TODO: WhatsApp API Code
     console.log(`WhatsApp OTP sent to ${phone}: ${generatedOtp}`);
 
     res.status(200).json({ success: true, message: 'OTP sent successfully' });
@@ -42,20 +43,16 @@ exports.verifyOtp = async (req, res) => {
     const { phone, otp } = req.body;
 
     // 🔥 UNIVERSAL BYPASS LOGIC FOR TESTING
-    // Agar user ne OTP '000000' daala hai, toh kisi bhi number par verify ho jayega
     if (otp === '000000') {
       return res.status(200).json({ success: true, message: 'Universal Bypass OTP Verified' });
     }
 
-    // Check OTP in DB
     const validOtp = await Otp.findOne({ phone, otp });
     if (!validOtp) {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
-    // OTP verify hone ke baad delete kardo
     await Otp.deleteMany({ phone });
-
     res.status(200).json({ success: true, message: 'OTP Verified Successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -67,28 +64,31 @@ exports.register = async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
-    // Check if user already exists
     const userExists = await User.findOne({ phone });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists with this phone number' });
     }
 
-    // Hash Password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create User
     const user = await User.create({
       name,
       email,
       phone,
       password: hashedPassword,
-      isVerified: true
+      isVerified: true,
+      isProfileComplete: false 
     });
 
     res.status(201).json({
       success: true,
-      user: { id: user._id, name: user.name, phone: user.phone },
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        phone: user.phone,
+        isProfileComplete: user.isProfileComplete 
+      },
       token: generateToken(user._id)
     });
   } catch (error) {
@@ -101,13 +101,11 @@ exports.login = async (req, res) => {
   try {
     const { phone, password } = req.body;
 
-    // Check User exists
     const user = await User.findOne({ phone });
     if (!user) {
       return res.status(400).json({ success: false, message: 'Invalid phone number or password' });
     }
 
-    // Check Password match
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: 'Invalid phone number or password' });
@@ -115,10 +113,81 @@ exports.login = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      user: { id: user._id, name: user.name, phone: user.phone },
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        phone: user.phone,
+        profileImage: user.profileImage, // Login ke time pe image bhi bhej do
+        isProfileComplete: user.isProfileComplete 
+      },
       token: generateToken(user._id)
     });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 5. Setup/Update Profile Logic with ImageKit
+exports.setupProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; 
+    let profileData = { ...req.body };
+    let profileImageUrl = "";
+
+    // 🔥 FormData frontend se aate time arrays ko string bana deta hai, usko wapas array/JSON bana rahe hain
+    if (profileData.siblings && typeof profileData.siblings === 'string') {
+      try {
+        profileData.siblings = JSON.parse(profileData.siblings);
+      } catch (err) {
+        console.error("Error parsing siblings array:", err);
+      }
+    }
+
+    // 🔥 Agar frontend se image aayi hai (multer ne pakdi hai)
+    if (req.file) {
+      const uploadResponse = await imagekit.upload({
+        file: req.file.buffer, // Multer ka memory buffer
+        fileName: `profile_${userId}_${Date.now()}.jpg`, 
+        folder: "/LocalShaadi_Profiles", // ImageKit mein is folder me jayegi
+      });
+      
+      profileImageUrl = uploadResponse.url; 
+    }
+
+    // Update object prepare kar rahe hain
+    const updatePayload = {
+      ...profileData,
+      isProfileComplete: true 
+    };
+
+    // Agar nayi image upload hui hai toh hi DB me save karo
+    if (profileImageUrl) {
+      updatePayload.profileImage = profileImageUrl;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updatePayload,
+      { new: true } 
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile setup completed successfully',
+      user: { 
+        id: updatedUser._id, 
+        name: updatedUser.name, 
+        profileImage: updatedUser.profileImage, // Frontend ko wapas URL bhej diya
+        isProfileComplete: updatedUser.isProfileComplete 
+      }
+    });
+
+  } catch (error) {
+    console.error("Profile Setup Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -1,13 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+
+// 🔥 SABSE PEHLE: Environment variables load karo! 
+// Taaki baaki files (jaise ImageKit config) ko keys mil sakein.
+dotenv.config();
+
 const connectDB = require('./config/db'); 
 
-// Route imports
+// Route imports (Ab isko import hote time .env ki keys properly mil jayengi)
 const authRoutes = require('./routes/authRoutes');
-
-// Load environment variables
-dotenv.config();
 
 // Connect to Database
 connectDB();
@@ -16,10 +18,13 @@ const app = express();
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
+
+// Payload limit badha di (Halanki ab Multer use ho raha hai, but JSON texts ke liye thik hai)
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 // API Routes
-app.use('/api/auth', authRoutes); // 🔥 Yahan routes add kiye hain
+app.use('/api/auth', authRoutes); 
 
 // Basic Route
 app.get('/', (req, res) => {

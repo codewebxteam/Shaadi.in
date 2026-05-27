@@ -66,7 +66,6 @@ const Login = () => {
       }
     } else if (name === "otp") {
       const onlyNums = value.replace(/[^0-9]/g, "");
-      // 🔥 Changed to 6 for the 000000 bypass
       if (onlyNums.length <= 6) {
         setFormData({ ...formData, [name]: onlyNums });
       }
@@ -75,11 +74,9 @@ const Login = () => {
     }
   };
 
-  // 🔥 FULLY CONNECTED BACKEND LOGIC
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🔥 NAYA CODE: Vercel env variable ya fir local URL dono ko handle karega
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
       ? import.meta.env.VITE_API_BASE_URL + "/auth"
       : "http://localhost:5001/api/auth";
@@ -103,22 +100,21 @@ const Login = () => {
         const data = await response.json();
 
         if (data.success) {
-          localStorage.setItem("token", data.token); // Token Save Kar Diya
+          // 🔥 NAYA CODE: Token aur User dono save kiye
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
 
-          // 🔥 NAYA CODE: Navbar ko update karne ke liye event bheja
           window.dispatchEvent(new Event("authChange"));
-
           setShowSuccessHearts(true);
 
           // 🔥 PROFILE SETUP REDIRECT LOGIC
-          // Backend developer ko bolna ki login response me `isProfileCompleted` flag bheje
-          const isProfileComplete = data.isProfileCompleted;
+          const isProfileComplete = data.user?.isProfileComplete;
 
           setTimeout(() => {
             if (isProfileComplete) {
               navigate("/dashboard");
             } else {
-              navigate("/profile-setup"); // Aadha form bhara hai toh seedha onboarding par
+              navigate("/profile-setup");
             }
           }, 6000);
         } else {
@@ -205,14 +201,15 @@ const Login = () => {
           const data = await response.json();
 
           if (data.success) {
-            localStorage.setItem("token", data.token); // Token Save Kar Diya
+            // 🔥 NAYA CODE: Token aur User dono save kiye
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
 
-            // 🔥 NAYA CODE: Navbar ko update karne ke liye event bheja
             window.dispatchEvent(new Event("authChange"));
-
             setShowSuccessHearts(true);
+
             setTimeout(() => {
-              navigate("/profile-setup"); // Naye user ko 1st time profile setup pe bhejna
+              navigate("/profile-setup"); // Naye user ko hamesha profile setup pe bhejna hai
             }, 6000);
           } else {
             alert(data.message || "Registration Failed.");
