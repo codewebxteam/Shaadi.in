@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   User,
   Users,
@@ -21,41 +21,162 @@ import { useNavigate } from "react-router-dom";
 
 const FinalProfile = () => {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
 
-  // Photo aur Crop Modal states
-  const [profileImage, setProfileImage] = useState(
-    "https://images.unsplash.com/photo-1600486913747-55e5470d6f40?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-  );
+  // 🔥 Toggles and Loaders
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 🔥 Photo aur Crop Modal states
+  const [profileImage, setProfileImage] = useState(null);
   const [tempImage, setTempImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [imageZoom, setImageZoom] = useState(1);
 
-  // Pre-filled User Data
+  // 🔥 Empty User Data State
   const [formData, setFormData] = useState({
-    profileFor: "Self",
-    fullName: "Rahul Verma",
-    fatherName: "Mr. Ramesh Verma",
-    dob: "1999-05-15",
-    age: "27",
-    gender: "Male",
-    maritalStatus: "Single",
-    height: "5'10\"",
-    complexion: "Wheatish",
-    state: "Uttar Pradesh",
-    district: "Lucknow",
-    cityVillage: "Gomti Nagar",
-    pincode: "226010",
-    religion: "Hindu",
-    caste: "Kshatriya",
-    category: "General",
-    occupation: "Software Engineer",
-    income: "5 - 10 Lakhs",
-    familyMembers: "4",
-    siblingCount: "1",
-    siblings: [{ name: "Priya Verma", status: "Single" }],
+    profileFor: "",
+    fullName: "",
+    fatherName: "",
+    dob: "",
+    age: "",
+    gender: "",
+    maritalStatus: "",
+    height: "",
+    complexion: "",
+    state: "",
+    district: "",
+    cityVillage: "",
+    pincode: "",
+    religion: "",
+    caste: "",
+    category: "",
+    occupation: "",
+    income: "",
+    familyMembers: "",
+    siblingCount: "0",
+    siblings: [],
   });
 
+  // =========================================================================
+  // 🟢 1. FETCH DATA FROM BACKEND WHEN PAGE LOADS
+  // =========================================================================
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        // 🔥 Dynamic URL for Local & Production
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
+
+        const response = await fetch(`${API_BASE_URL}/profile`, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // HTML/404 Error crash bachane ke liye check
+        const contentType = response.headers.get("content-type");
+        if (
+          !response.ok ||
+          !contentType ||
+          !contentType.includes("application/json")
+        ) {
+          throw new Error("Backend API abhi ready nahi hai ya URL galat hai");
+        }
+
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          let formattedDob = "";
+          if (data.user.dob) {
+            formattedDob = new Date(data.user.dob).toISOString().split("T")[0];
+          }
+          setFormData((prev) => ({
+            ...prev,
+            ...data.user,
+            dob: formattedDob,
+            siblings: data.user.siblings || [],
+          }));
+          if (data.user.profileImage) {
+            setProfileImage(data.user.profileImage);
+          }
+        }
+      } catch (error) {
+        console.warn("⚠️ API Fetch Issue:", error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
+  // =========================================================================
+  // 🟢 2. SEND UPDATED DATA TO BACKEND (SUBMIT)
+  // =========================================================================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+        ? import.meta.env.VITE_API_BASE_URL + "/auth"
+        : "http://localhost:5001/api/auth";
+
+      const submitData = new FormData();
+
+      Object.keys(formData).forEach((key) => {
+        if (key === "siblings") {
+          submitData.append(key, JSON.stringify(formData[key]));
+        } else {
+          submitData.append(key, formData[key] || "");
+        }
+      });
+
+      if (selectedFile) {
+        submitData.append("profileImage", selectedFile);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/update-profile`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: submitData,
+      });
+
+      const contentType = response.headers.get("content-type");
+      if (
+        !response.ok ||
+        !contentType ||
+        !contentType.includes("application/json")
+      ) {
+        throw new Error("Update API abhi ready nahi hai");
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert("Profile details updated successfully! 💖");
+        setIsEditing(false);
+        if (result.user?.profileImage) {
+          setProfileImage(result.user.profileImage);
+        }
+      } else {
+        alert("Update failed: " + result.message);
+      }
+    } catch (error) {
+      console.warn("⚠️ Edit API Issue:", error.message);
+      alert("Something went wrong! Server might be unreachable.");
+      setIsEditing(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // =========================================================================
+  // 🟢 3. FORM HANDLERS
+  // =========================================================================
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -65,6 +186,7 @@ const FinalProfile = () => {
         e.target.value = "";
         return;
       }
+      setSelectedFile(file);
       setTempImage(URL.createObjectURL(file));
       setImageZoom(1);
       setShowCropModal(true);
@@ -101,12 +223,9 @@ const FinalProfile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     if (name === "pincode") {
       const onlyNums = value.replace(/[^0-9]/g, "");
-      if (onlyNums.length <= 6) {
-        setFormData({ ...formData, [name]: onlyNums });
-      }
+      if (onlyNums.length <= 6) setFormData({ ...formData, [name]: onlyNums });
       return;
     }
 
@@ -124,7 +243,6 @@ const FinalProfile = () => {
           dob: value,
           age: calculatedAge >= 18 ? calculatedAge : "",
         }));
-
         if (calculatedAge < 18 && calculatedAge >= 0) {
           alert("Age must be 18 or above.");
         }
@@ -136,74 +254,46 @@ const FinalProfile = () => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Profile Updated: ", formData);
-    alert("Profile details updated successfully!");
-    setIsEditing(false);
-  };
-
   const hideScrollbar =
     "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]";
 
   const inputClass = `px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium outline-none transition-all w-full
     ${isEditing ? "bg-white focus:border-[#e02c5a] focus:ring-2 focus:ring-[#e02c5a]/20 text-gray-800" : "bg-gray-100 text-gray-500 cursor-not-allowed"}`;
 
+  // =========================================================================
+  // 🟢 4. RENDER UI
+  // =========================================================================
+  if (isLoading && !isEditing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] flex flex-col items-center justify-center">
+        <Sparkles size={40} className="text-[#e02c5a] animate-spin mb-4" />
+        <p className="text-[#821511] font-bold font-serif text-xl animate-pulse">
+          Loading your beautiful profile...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`min-h-screen bg-gradient-to-b from-[#fff0f5] via-white to-[#ffe4e6] font-sans pb-12 relative overflow-x-hidden ${hideScrollbar}`}
     >
-      {/* ================= MAGICAL ROMANTIC BACKGROUND ================= */}
+      {/* MAGICAL BACKGROUND */}
       <style>{`
         @keyframes gentle-bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-15px); }
         }
-        .animate-gentle {
-          animation: gentle-bounce 4s ease-in-out infinite;
-        }
+        .animate-gentle { animation: gentle-bounce 4s ease-in-out infinite; }
       `}</style>
 
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
         <div className="absolute -top-[10%] -right-[5%] w-[400px] h-[400px] rounded-full bg-[#e02c5a]/10 blur-[90px]"></div>
         <div className="absolute top-[40%] -left-[10%] w-[500px] h-[500px] rounded-full bg-[#fbbf24]/10 blur-[90px]"></div>
         <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] rounded-full bg-rose-200/20 blur-[60px]"></div>
-
-        {/* Floating Vibe Icons */}
-        <div
-          className="absolute top-[15%] left-[5%] opacity-15 animate-gentle"
-          style={{ animationDelay: "0s" }}
-        >
-          <Heart
-            size={50}
-            fill="#e02c5a"
-            color="#e02c5a"
-            className="-rotate-12"
-          />
-        </div>
-        <div
-          className="absolute top-[60%] right-[8%] opacity-15 animate-gentle"
-          style={{ animationDelay: "1s" }}
-        >
-          <Heart
-            size={70}
-            fill="#fbbf24"
-            color="#fbbf24"
-            className="rotate-12"
-          />
-        </div>
-        <div className="absolute top-[30%] right-[15%] opacity-10 animate-pulse">
-          <Flower2 size={40} color="#e02c5a" strokeWidth={1.5} />
-        </div>
-        <div
-          className="absolute bottom-[20%] left-[10%] opacity-20 animate-gentle"
-          style={{ animationDelay: "2s" }}
-        >
-          <Sparkles size={35} color="#fbbf24" strokeWidth={1.5} />
-        </div>
       </div>
 
-      {/* ================= CROP MODAL ================= */}
+      {/* CROP MODAL */}
       {showCropModal && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in duration-200">
@@ -216,15 +306,13 @@ const FinalProfile = () => {
                 <X size={24} />
               </button>
             </div>
-            {/* 🔥 ROUNDED-FULL KI JAGAH ROUNDED-2XL KIYA HAI (SQUARE PROFILE VIBE) */}
             <div className="relative w-64 h-64 mx-auto rounded-2xl overflow-hidden bg-rose-50 border-4 border-dashed border-rose-300 mb-6 flex items-center justify-center shadow-inner">
               <img
                 src={tempImage}
-                alt="Upload Preview"
+                alt="Preview"
                 className="w-full h-full object-cover transition-transform duration-100 cursor-move"
                 style={{ transform: `scale(${imageZoom})` }}
               />
-              <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
             </div>
             <div className="flex items-center gap-3 mb-6 bg-gray-50 p-3 rounded-xl">
               <ZoomIn size={20} className="text-gray-500" />
@@ -248,7 +336,7 @@ const FinalProfile = () => {
         </div>
       )}
 
-      {/* ================= FORM CONTAINER ================= */}
+      {/* FORM CONTAINER */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 md:pt-10 relative z-10">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div>
@@ -269,13 +357,12 @@ const FinalProfile = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 📸 PHOTO UPLOAD SECTION - (4 KONA WALA SQUARE PROFILE) */}
+          {/* PHOTO UPLOAD SECTION */}
           <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgba(224,44,90,0.06)] border border-rose-100 p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6 relative">
             <div className="absolute top-4 right-6 bg-green-50 text-green-600 px-3 py-1 rounded-full text-xs font-bold border border-green-200 flex items-center gap-1 shadow-sm">
               <ShieldCheck size={14} /> Profile Verified
             </div>
 
-            {/* 🔥 ROUNDED-FULL KI JAGAH ROUNDED-2XL KIYA HAI AUR SIZE BADA KIYA HAI */}
             <div className="relative group w-36 h-36 shrink-0 rounded-2xl border-4 border-rose-100 bg-rose-50 flex items-center justify-center overflow-hidden shadow-md mt-4 sm:mt-0">
               {profileImage ? (
                 <img
@@ -286,7 +373,6 @@ const FinalProfile = () => {
               ) : (
                 <Camera size={40} className="text-[#e02c5a]/40" />
               )}
-
               {isEditing && (
                 <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10 backdrop-blur-sm">
                   <ImagePlus size={28} className="text-white mb-1" />
@@ -314,7 +400,6 @@ const FinalProfile = () => {
                 </span>{" "}
                 and love.
               </p>
-
               {isEditing && (
                 <label className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#fff0f5] text-[#e02c5a] font-bold rounded-xl border border-[#e02c5a]/30 cursor-pointer hover:bg-[#e02c5a] hover:text-white transition-all shadow-sm">
                   <Camera size={18} /> Upload New Photo
@@ -349,6 +434,9 @@ const FinalProfile = () => {
                   required
                   className={inputClass}
                 >
+                  <option value="" disabled>
+                    Select Profile For
+                  </option>
                   <option value="Self">Self</option>
                   <option value="Son">Son</option>
                   <option value="Daughter">Daughter</option>
@@ -384,6 +472,9 @@ const FinalProfile = () => {
                   required
                   className={inputClass}
                 >
+                  <option value="" disabled>
+                    Select Gender
+                  </option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
@@ -429,7 +520,10 @@ const FinalProfile = () => {
                   required
                   className={inputClass}
                 >
-                  <option value="Single">Single (Never Married)</option>
+                  <option value="" disabled>
+                    Select Status
+                  </option>
+                  <option value="Single">Single</option>
                   <option value="Divorced">Divorced</option>
                   <option value="Widowed">Widowed</option>
                 </select>
@@ -448,6 +542,11 @@ const FinalProfile = () => {
                     required
                     className={inputClass}
                   >
+                    <option value="" disabled>
+                      Height
+                    </option>
+                    <option value="5'0&quot;">5' 0"</option>
+                    <option value="5'2&quot;">5' 2"</option>
                     <option value="5'4&quot;">5' 4"</option>
                     <option value="5'5&quot;">5' 5"</option>
                     <option value="5'6&quot;">5' 6"</option>
@@ -468,6 +567,9 @@ const FinalProfile = () => {
                     required
                     className={inputClass}
                   >
+                    <option value="" disabled>
+                      Complexion
+                    </option>
                     <option value="Very Fair">Very Fair</option>
                     <option value="Fair">Fair</option>
                     <option value="Wheatish">Wheatish</option>
@@ -544,7 +646,7 @@ const FinalProfile = () => {
             </div>
           </div>
 
-          {/* CARD 3: RELIGION & BACKGROUND */}
+          {/* CARD 3: RELIGION */}
           <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgba(224,44,90,0.06)] border border-rose-100 p-5 sm:p-8">
             <h2 className="flex items-center gap-2 text-lg sm:text-xl font-bold text-[#821511] mb-5 sm:mb-6 pb-3 sm:pb-4 border-b border-rose-100 font-serif">
               <BookOpen className="text-purple-600 sm:w-6 sm:h-6" size={20} />{" "}
@@ -563,6 +665,9 @@ const FinalProfile = () => {
                   required
                   className={inputClass}
                 >
+                  <option value="" disabled>
+                    Select
+                  </option>
                   <option value="Hindu">Hindu</option>
                   <option value="Muslim">Muslim</option>
                   <option value="Sikh">Sikh</option>
@@ -593,6 +698,9 @@ const FinalProfile = () => {
                   onChange={handleChange}
                   className={inputClass}
                 >
+                  <option value="" disabled>
+                    Select
+                  </option>
                   <option value="General">General</option>
                   <option value="OBC">OBC</option>
                   <option value="SC">SC</option>
@@ -608,7 +716,6 @@ const FinalProfile = () => {
               <Briefcase className="text-blue-500 sm:w-6 sm:h-6" size={20} />{" "}
               Career & Family
             </h2>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
               <div className="flex flex-col">
                 <label className="text-[10px] sm:text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 sm:mb-2">
@@ -623,7 +730,6 @@ const FinalProfile = () => {
                   className={inputClass}
                 />
               </div>
-
               <div className="flex flex-col">
                 <label className="text-[10px] sm:text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 sm:mb-2">
                   Occupation
@@ -636,13 +742,15 @@ const FinalProfile = () => {
                   required
                   className={inputClass}
                 >
+                  <option value="" disabled>
+                    Select
+                  </option>
                   <option value="Private Job">Private Job</option>
                   <option value="Government Job">Government Job</option>
                   <option value="Software Engineer">Software Engineer</option>
                   <option value="Business">Business</option>
                 </select>
               </div>
-
               <div className="flex flex-col">
                 <label className="text-[10px] sm:text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 sm:mb-2">
                   Annual Income
@@ -654,13 +762,15 @@ const FinalProfile = () => {
                   onChange={handleChange}
                   className={inputClass}
                 >
+                  <option value="" disabled>
+                    Select
+                  </option>
                   <option value="0 - 2 Lakhs">0 - 2 Lakhs</option>
                   <option value="2 - 5 Lakhs">2 - 5 Lakhs</option>
                   <option value="5 - 10 Lakhs">5 - 10 Lakhs</option>
                   <option value="10 - 20 Lakhs">10 - 20 Lakhs</option>
                 </select>
               </div>
-
               <div className="flex flex-col">
                 <label className="text-[10px] sm:text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 sm:mb-2">
                   Total Family Members
@@ -675,7 +785,6 @@ const FinalProfile = () => {
                   className={inputClass}
                 />
               </div>
-
               <div className="flex flex-col">
                 <label className="text-[10px] sm:text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1.5 sm:mb-2">
                   Number of Siblings
@@ -695,7 +804,7 @@ const FinalProfile = () => {
                 </select>
               </div>
 
-              {/* DYNAMIC SIBLINGS SECTION */}
+              {/* SIBLINGS SECTION */}
               {formData.siblings.length > 0 && (
                 <div className="col-span-1 md:col-span-3 mt-4 bg-rose-50/50 border border-rose-100 rounded-2xl p-4 sm:p-6 shadow-inner">
                   <h3 className="text-[#821511] font-bold mb-4 sm:mb-5 flex items-center gap-2 text-sm sm:text-base">
@@ -758,7 +867,7 @@ const FinalProfile = () => {
             </div>
           </div>
 
-          {/* ================= BUTTON CONTROLS ================= */}
+          {/* BUTTON CONTROLS */}
           <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6 pb-6 sm:pb-8 border-t border-rose-100">
             {!isEditing ? (
               <button
@@ -783,10 +892,15 @@ const FinalProfile = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] hover:shadow-lg hover:-translate-y-1 text-white px-8 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-md transition-all text-center w-full sm:w-auto text-sm sm:text-lg"
+                  disabled={isLoading}
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] hover:shadow-lg hover:-translate-y-1 text-white px-8 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold shadow-md transition-all text-center w-full sm:w-auto text-sm sm:text-lg disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <CheckCircle size={18} className="sm:w-5 sm:h-5" /> Save All
-                  Updates
+                  {isLoading ? (
+                    <Sparkles className="animate-spin" size={18} />
+                  ) : (
+                    <CheckCircle size={18} className="sm:w-5 sm:h-5" />
+                  )}
+                  {isLoading ? "Saving..." : "Save All Updates"}
                 </button>
               </>
             )}

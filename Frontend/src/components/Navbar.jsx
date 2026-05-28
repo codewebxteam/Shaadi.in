@@ -21,12 +21,32 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  // 🔥 Naye State Variables: Real Name aur Phone Number ke liye
+  const [userName, setUserName] = useState("User");
+  const [userPhone, setUserPhone] = useState("");
+
   const isProfileSetupRoute = location.pathname === "/profile-setup";
+
+  const isActive = (path) => location.pathname === path;
 
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem("token");
       setIsLoggedIn(!!token);
+
+      // 🔥 LocalStorage se User ka data nikalna
+      if (token) {
+        try {
+          const userDataString = localStorage.getItem("user");
+          if (userDataString) {
+            const userData = JSON.parse(userDataString);
+            setUserName(userData.name || "User");
+            setUserPhone(userData.phone || ""); // Phone number fetch karna
+          }
+        } catch (error) {
+          console.error("Error parsing user data from localStorage:", error);
+        }
+      }
     };
 
     checkAuthStatus();
@@ -39,6 +59,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user"); // 🔥 Logout par user data bhi delete karein
     window.dispatchEvent(new Event("authChange"));
     setIsLoggedIn(false);
     setShowProfileMenu(false);
@@ -50,7 +71,6 @@ const Navbar = () => {
   // =========================================================================
   if (!isLoggedIn) {
     return (
-      // 🔥 FIX: 'fixed md:sticky' ko hata kar sirf 'sticky' kar diya. Ab content overlap nahi karega!
       <nav className="sticky top-0 w-full z-50 bg-rose-50/90 backdrop-blur-md shadow-sm border-b border-rose-100">
         <div className="max-w-7xl mx-auto px-3 md:px-8 py-3 md:py-5 flex items-center justify-between">
           <RouterLink
@@ -106,7 +126,6 @@ const Navbar = () => {
   // =========================================================================
   if (isLoggedIn && isProfileSetupRoute) {
     return (
-      // 🔥 FIX: 'sticky' use kiya taki page content niche se shuru ho
       <nav className="sticky top-0 w-full z-50 bg-rose-50/90 backdrop-blur-md shadow-sm border-b border-rose-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-3 md:py-4 flex items-center justify-between">
           <div className="relative flex flex-col items-start decoration-transparent">
@@ -133,7 +152,6 @@ const Navbar = () => {
   // =========================================================================
   return (
     <>
-      {/* 🔥 FIX: 'sticky' use kiya taki page content overlap na ho */}
       <nav className="sticky top-0 w-full z-50 bg-rose-50/90 backdrop-blur-md shadow-sm border-b border-rose-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-3 md:py-4 flex items-center justify-between">
           <RouterLink
@@ -148,44 +166,73 @@ const Navbar = () => {
           </RouterLink>
 
           <div className="flex items-center gap-4 md:gap-6">
-            {/* Desktop Links */}
-            <div className="hidden md:flex items-center gap-6 font-bold text-gray-700">
+            {/* Desktop Links with Active State */}
+            <div className="hidden md:flex items-center gap-4 font-bold text-gray-700">
               <RouterLink
                 to="/dashboard"
-                className="hover:text-[#e02c5a] transition-colors"
+                className={`transition-colors px-4 py-2 rounded-full flex items-center gap-1 ${
+                  isActive("/dashboard")
+                    ? "bg-rose-50 text-[#e02c5a]"
+                    : "hover:text-[#e02c5a]"
+                }`}
               >
                 Home
               </RouterLink>
               <RouterLink
                 to="/matches"
-                className="hover:text-[#e02c5a] transition-colors"
+                className={`transition-colors px-4 py-2 rounded-full flex items-center gap-1 ${
+                  isActive("/matches")
+                    ? "bg-rose-50 text-[#e02c5a]"
+                    : "hover:text-[#e02c5a]"
+                }`}
               >
                 Matches
               </RouterLink>
               <button
                 onClick={() => navigate("/notifications")}
-                className="hover:text-[#e02c5a] transition-colors flex items-center gap-1 relative focus:outline-none"
+                className={`transition-colors px-4 py-2 rounded-full flex items-center gap-1 relative focus:outline-none ${
+                  isActive("/notifications")
+                    ? "bg-rose-50 text-[#e02c5a]"
+                    : "hover:text-[#e02c5a]"
+                }`}
               >
                 Notifications
-                <span className="bg-[#e02c5a] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-2 -right-3 shadow-sm animate-pulse">
+                <span className="bg-[#e02c5a] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-1 -right-1 shadow-sm animate-pulse">
                   3
                 </span>
               </button>
               <RouterLink
                 to="/premium"
-                className="hover:text-[#e02c5a] transition-colors flex items-center gap-1"
+                className={`transition-colors px-4 py-2 rounded-full flex items-center gap-1 ${
+                  isActive("/premium")
+                    ? "bg-rose-50 text-[#e02c5a]"
+                    : "hover:text-[#e02c5a]"
+                }`}
               >
-                Premium <Sparkles size={14} className="text-[#fbbf24]" />
+                Premium{" "}
+                <Sparkles
+                  size={14}
+                  className={
+                    isActive("/premium") ? "text-[#e02c5a]" : "text-[#fbbf24]"
+                  }
+                />
               </RouterLink>
             </div>
 
             {/* Mobile Top Icons: Only Notification and Profile */}
             <div
-              className="md:hidden relative cursor-pointer"
+              className={`md:hidden relative cursor-pointer p-2 rounded-full ${isActive("/notifications") ? "bg-rose-50" : ""}`}
               onClick={() => navigate("/notifications")}
             >
-              <Bell size={22} className="text-[#e02c5a]" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+              <Bell
+                size={22}
+                className={
+                  isActive("/notifications")
+                    ? "text-[#e02c5a]"
+                    : "text-gray-600"
+                }
+              />
+              <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white">
                 3
               </span>
             </div>
@@ -207,32 +254,33 @@ const Navbar = () => {
               {showProfileMenu && (
                 <div className="absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_15px_40px_rgba(224,44,90,0.15)] border border-rose-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-4 border-b border-rose-50 bg-gradient-to-b from-rose-50/50 to-transparent">
-                    <p className="text-sm font-bold text-gray-800 font-serif">
-                      Rahul Verma
+                    {/* 🔥 Dynamic Name and Phone Number */}
+                    <p className="text-sm font-bold text-gray-800 font-serif truncate">
+                      {userName}
                     </p>
-                    <p className="text-xs text-gray-500 font-medium mt-0.5">
-                      ID: LSK-84729
+                    <p className="text-xs text-gray-500 font-medium mt-0.5 tracking-wide">
+                      {userPhone ? `+91 ${userPhone}` : "Profile Incomplete"}
                     </p>
                   </div>
                   <div className="p-2 space-y-1">
                     <RouterLink
                       to="/final-profile"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a] transition-colors"
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${isActive("/final-profile") ? "bg-rose-50 text-[#e02c5a]" : "text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a]"}`}
                     >
                       <User size={16} /> Edit Profile
                     </RouterLink>
                     <RouterLink
                       to="/dashboard"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a] transition-colors md:hidden"
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors md:hidden ${isActive("/dashboard") ? "bg-rose-50 text-[#e02c5a]" : "text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a]"}`}
                     >
                       <LayoutDashboard size={16} /> Dashboard
                     </RouterLink>
                     <RouterLink
                       to="/matches"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a] transition-colors md:hidden"
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors md:hidden ${isActive("/matches") ? "bg-rose-50 text-[#e02c5a]" : "text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a]"}`}
                     >
                       <Heart size={16} /> My Matches
                     </RouterLink>
@@ -255,50 +303,129 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* ================= MOBILE BOTTOM NAVIGATION BAR ================= */}
+      {/* ================= MOBILE BOTTOM NAVIGATION BAR WITH ACTIVE STATE ================= */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-rose-100 flex justify-around items-center h-[72px] z-50 px-2 pb-2 shadow-[0_-5px_15px_rgba(224,44,90,0.05)]">
+        {/* Home */}
         <button
           onClick={() => navigate("/dashboard")}
-          className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-[#e02c5a] transition-colors group"
+          className={`flex flex-col items-center justify-center gap-1 w-16 transition-all duration-300 group ${
+            isActive("/dashboard")
+              ? "text-[#e02c5a] -translate-y-1"
+              : "text-gray-500 hover:text-[#e02c5a]"
+          }`}
         >
-          <Home size={24} className="group-hover:fill-rose-100" />
-          <span className="text-[10px] font-bold">Home</span>
+          <Home
+            size={24}
+            className={
+              isActive("/dashboard")
+                ? "fill-rose-100"
+                : "group-hover:fill-rose-50"
+            }
+          />
+          <span
+            className={`text-[10px] ${isActive("/dashboard") ? "font-extrabold" : "font-medium"}`}
+          >
+            Home
+          </span>
         </button>
 
+        {/* Matches */}
         <button
           onClick={() => navigate("/matches")}
-          className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-[#e02c5a] transition-colors group"
+          className={`flex flex-col items-center justify-center gap-1 w-16 transition-all duration-300 group ${
+            isActive("/matches")
+              ? "text-[#e02c5a] -translate-y-1"
+              : "text-gray-500 hover:text-[#e02c5a]"
+          }`}
         >
-          <Heart size={22} className="group-hover:fill-rose-100" />
-          <span className="text-[10px] font-medium">Matches</span>
+          <Heart
+            size={22}
+            className={
+              isActive("/matches")
+                ? "fill-rose-100"
+                : "group-hover:fill-rose-50"
+            }
+          />
+          <span
+            className={`text-[10px] ${isActive("/matches") ? "font-extrabold" : "font-medium"}`}
+          >
+            Matches
+          </span>
         </button>
 
+        {/* Notifications */}
         <button
           onClick={() => navigate("/notifications")}
-          className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-[#e02c5a] transition-colors relative focus:outline-none"
+          className={`flex flex-col items-center justify-center gap-1 w-16 transition-all duration-300 relative focus:outline-none group ${
+            isActive("/notifications")
+              ? "text-[#e02c5a] -translate-y-1"
+              : "text-gray-500 hover:text-[#e02c5a]"
+          }`}
         >
-          <Bell size={22} />
+          <Bell
+            size={22}
+            className={
+              isActive("/notifications")
+                ? "fill-rose-100"
+                : "group-hover:fill-rose-50"
+            }
+          />
           <span className="absolute top-0 right-3 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
             3
           </span>
-          <span className="text-[10px] font-medium">Notifs</span>
+          <span
+            className={`text-[10px] ${isActive("/notifications") ? "font-extrabold" : "font-medium"}`}
+          >
+            Notifs
+          </span>
         </button>
 
-        {/* 🔥 FIX: Search ko hata kar Premium laga diya */}
+        {/* Premium */}
         <button
           onClick={() => navigate("/premium")}
-          className="flex flex-col items-center justify-center gap-1 w-16 text-gray-500 hover:text-[#e02c5a] transition-colors"
+          className={`flex flex-col items-center justify-center gap-1 w-16 transition-all duration-300 group ${
+            isActive("/premium")
+              ? "text-[#e02c5a] -translate-y-1"
+              : "text-gray-500 hover:text-[#e02c5a]"
+          }`}
         >
-          <Sparkles size={22} className="text-[#fbbf24]" />
-          <span className="text-[10px] font-medium">Premium</span>
+          <Sparkles
+            size={22}
+            className={
+              isActive("/premium")
+                ? "text-[#e02c5a] fill-rose-100"
+                : "text-[#fbbf24] group-hover:text-[#e02c5a]"
+            }
+          />
+          <span
+            className={`text-[10px] ${isActive("/premium") ? "font-extrabold" : "font-medium"}`}
+          >
+            Premium
+          </span>
         </button>
 
+        {/* Profile */}
         <button
           onClick={() => navigate("/final-profile")}
-          className="flex flex-col items-center justify-center gap-1 text-gray-500 hover:text-[#e02c5a] transition-colors group"
+          className={`flex flex-col items-center justify-center gap-1 w-16 transition-all duration-300 group ${
+            isActive("/final-profile")
+              ? "text-[#e02c5a] -translate-y-1"
+              : "text-gray-500 hover:text-[#e02c5a]"
+          }`}
         >
-          <User size={22} className="group-hover:fill-rose-100" />
-          <span className="text-[10px] font-medium">Profile</span>
+          <User
+            size={22}
+            className={
+              isActive("/final-profile")
+                ? "fill-rose-100"
+                : "group-hover:fill-rose-50"
+            }
+          />
+          <span
+            className={`text-[10px] ${isActive("/final-profile") ? "font-extrabold" : "font-medium"}`}
+          >
+            Profile
+          </span>
         </button>
       </div>
     </>

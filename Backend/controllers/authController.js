@@ -127,14 +127,13 @@ exports.login = async (req, res) => {
   }
 };
 
-// 5. Setup/Update Profile Logic with ImageKit
+// 5. Setup Profile Logic with ImageKit (Initial Setup)
 exports.setupProfile = async (req, res) => {
   try {
     const userId = req.user.id; 
     let profileData = { ...req.body };
     let profileImageUrl = "";
 
-    // 🔥 FormData frontend se aate time arrays ko string bana deta hai, usko wapas array/JSON bana rahe hain
     if (profileData.siblings && typeof profileData.siblings === 'string') {
       try {
         profileData.siblings = JSON.parse(profileData.siblings);
@@ -143,24 +142,20 @@ exports.setupProfile = async (req, res) => {
       }
     }
 
-    // 🔥 Agar frontend se image aayi hai (multer ne pakdi hai)
     if (req.file) {
       const uploadResponse = await imagekit.upload({
-        file: req.file.buffer, // Multer ka memory buffer
+        file: req.file.buffer, 
         fileName: `profile_${userId}_${Date.now()}.jpg`, 
-        folder: "/LocalShaadi_Profiles", // ImageKit mein is folder me jayegi
+        folder: "/LocalShaadi_Profiles", 
       });
-      
       profileImageUrl = uploadResponse.url; 
     }
 
-    // Update object prepare kar rahe hain
     const updatePayload = {
       ...profileData,
       isProfileComplete: true 
     };
 
-    // Agar nayi image upload hui hai toh hi DB me save karo
     if (profileImageUrl) {
       updatePayload.profileImage = profileImageUrl;
     }
@@ -181,7 +176,7 @@ exports.setupProfile = async (req, res) => {
       user: { 
         id: updatedUser._id, 
         name: updatedUser.name, 
-        profileImage: updatedUser.profileImage, // Frontend ko wapas URL bhej diya
+        profileImage: updatedUser.profileImage,
         isProfileComplete: updatedUser.isProfileComplete 
       }
     });
@@ -189,5 +184,73 @@ exports.setupProfile = async (req, res) => {
   } catch (error) {
     console.error("Profile Setup Error:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =====================================================================
+// 🔥 NAYA CODE: 6. Get User Profile (Page load hote hi data bhejne ke liye)
+// =====================================================================
+exports.getUserProfile = async (req, res) => {
+  try {
+    // req.user.id hume 'protect' middleware se mil jayega
+    const user = await User.findById(req.user.id).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.error("Error in getUserProfile:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// =====================================================================
+// 🔥 NAYA CODE: 7. Update User Profile (Edit karke save karne ke liye)
+// =====================================================================
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    let updateData = { ...req.body };
+
+    // Frontend se siblings array string format me aati hai, usko wapas JSON/Array banana padega
+    if (updateData.siblings && typeof updateData.siblings === 'string') {
+      try {
+        updateData.siblings = JSON.parse(updateData.siblings);
+      } catch (err) {
+        console.error("Error parsing siblings array:", err);
+      }
+    }
+
+    // Agar user ne edit karte time nayi photo bhi daali hai
+    if (req.file) {
+      const uploadResponse = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: `profile_${userId}_${Date.now()}.jpg`,
+        folder: "/LocalShaadi_Profiles",
+      });
+      updateData.profileImage = uploadResponse.url;
+    }
+
+    // DB mein user ko find karo aur update karo
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true } // new:true return karta hai updated document
+    ).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Profile updated successfully",
+      user: updatedUser 
+    });
+  } catch (error) {
+    console.error("Error in updateUserProfile:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
