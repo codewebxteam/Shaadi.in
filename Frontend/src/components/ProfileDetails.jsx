@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Heart,
   User,
@@ -16,10 +16,31 @@ import {
   Star,
   Sparkles,
   Flower2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 const ProfileDetails = ({ profile, onBack }) => {
   if (!profile) return null;
+
+  // 🔥 Image Gallery Logic
+  // Agar backend se array aayi hai to use karenge, warna primary img fallback
+  const galleryImages =
+    profile.profileImages && profile.profileImages.length > 0
+      ? profile.profileImages
+      : [profile.img];
+
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex(
+      (prev) => (prev - 1 + galleryImages.length) % galleryImages.length,
+    );
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 ease-out w-full relative">
@@ -51,23 +72,45 @@ const ProfileDetails = ({ profile, onBack }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 relative z-10">
         {/* ================= LEFT COLUMN: PHOTO & ACTIONS (4 Cols) ================= */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Photo Card */}
+          {/* Photo Card with Gallery */}
           <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-4 sm:p-5 shadow-[0_10px_40px_rgba(224,44,90,0.08)] border border-rose-100 group">
-            <div className="relative h-[350px] sm:h-[420px] rounded-2xl overflow-hidden mb-5 border-4 border-rose-50 shadow-inner group-hover:border-rose-100 transition-colors duration-500">
+            {/* Main Image View */}
+            <div className="relative h-[350px] sm:h-[420px] rounded-2xl overflow-hidden mb-3 border-4 border-rose-50 shadow-inner group-hover:border-rose-100 transition-colors duration-500">
               <img
-                src={profile.img}
-                alt={profile.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
+                key={galleryImages[currentImageIndex]} // Keys force re-render for smooth fade if needed
+                src={galleryImages[currentImageIndex]}
+                alt={`${profile.name} - Photo ${currentImageIndex + 1}`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out animate-in fade-in zoom-in-95"
               />
+
               {/* Photo Count Overlay */}
-              <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/20 flex items-center gap-1.5">
-                <Camera size={14} /> {profile.pics} Photos
+              <div className="absolute top-3 left-3 bg-black/40 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/20 flex items-center gap-1.5 z-20">
+                <Camera size={14} /> {currentImageIndex + 1} /{" "}
+                {galleryImages.length}
               </div>
 
-              {/* Magical Gradient Overlay at bottom for seamless blend */}
-              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/60 to-transparent"></div>
+              {/* Left/Right Navigation Arrows (Only show if > 1 image) */}
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-sm transition-all z-20"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
 
-              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+              {/* Magical Gradient Overlay at bottom for seamless blend */}
+              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 to-transparent z-10"></div>
+
+              <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-20">
                 <div>
                   <h3 className="text-white font-serif text-2xl font-bold tracking-wide drop-shadow-md">
                     {profile.name.split(" ")[0]}
@@ -83,8 +126,31 @@ const ProfileDetails = ({ profile, onBack }) => {
               </div>
             </div>
 
+            {/* Thumbnail Strip (Only show if > 1 image) */}
+            {galleryImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto py-1 mb-4 scrollbar-hide px-1 justify-center">
+                {galleryImages.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`relative shrink-0 w-12 h-12 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                      currentImageIndex === index
+                        ? "border-[#e02c5a] shadow-[0_0_10px_rgba(224,44,90,0.4)] scale-110"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumb ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Action Buttons */}
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 mt-2">
               <button className="flex-1 py-3.5 sm:py-4 rounded-2xl border-2 border-rose-100 text-[#e02c5a] text-sm sm:text-base font-bold hover:bg-rose-50 hover:border-rose-200 flex justify-center items-center gap-2 transition-all shadow-sm group/btn">
                 <Star
                   size={18}
@@ -303,7 +369,7 @@ const ProfileDetails = ({ profile, onBack }) => {
                 </li>
               </ul>
 
-              {profile.siblings.length > 0 && (
+              {profile.siblings && profile.siblings.length > 0 && (
                 <div className="bg-gradient-to-br from-rose-50 to-pink-50/50 p-4 rounded-2xl border border-rose-100 shadow-inner">
                   <span className="text-[11px] sm:text-xs font-black text-rose-400 uppercase tracking-widest mb-3 block">
                     Siblings ({profile.siblingCount})
@@ -318,7 +384,7 @@ const ProfileDetails = ({ profile, onBack }) => {
                           {sib.name}
                         </span>
                         <span className="bg-white px-2.5 py-1 rounded-lg border border-rose-100 font-bold text-[#e02c5a] shadow-sm">
-                          {sib.status}
+                          {sib.maritalStatus || sib.status}
                         </span>
                       </div>
                     ))}
