@@ -1,76 +1,136 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Heart,
   MessageSquare,
   Eye,
   CheckCircle,
   Bell,
-  Award,
   Sparkles,
   Flower2,
 } from "lucide-react";
 
-const Notifications = () => {
-  // 🔥 Mock Notifications Data
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "view",
-      text: "Neha Verma viewed your profile.",
-      time: "10 mins ago",
-      isRead: false,
-      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-      icon: <Eye size={16} className="text-blue-500" />,
-    },
-    {
-      id: 2,
-      type: "match",
-      text: "Congratulations! You have a new 92% match with Anjali Sharma.",
-      time: "2 hours ago",
-      isRead: false,
-      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-      icon: <Heart size={16} className="text-[#e02c5a]" fill="currentColor" />,
-    },
-    {
-      id: 3,
-      type: "message",
-      text: "Priya Singh sent you a new message. Upgrade to premium to read it.",
-      time: "5 hours ago",
-      isRead: true,
-      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=150&q=80",
-      icon: <MessageSquare size={16} className="text-green-500" />,
-    },
-    {
-      id: 4,
-      type: "system",
-      text: "Your profile is getting 4x more views. Keep your details updated!",
-      time: "1 day ago",
-      isRead: true,
-      img: null,
-      icon: <Award size={24} className="text-yellow-500" />,
-    },
-    {
-      id: 5,
-      type: "shortlist",
-      text: "Someone from Delhi shortlisted your profile.",
-      time: "2 days ago",
-      isRead: true,
-      img: null,
-      icon: <StarIcon />, // Using custom star since imported icons are limited above
-    },
-  ]);
+// Custom Star Icon component
+const StarIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="text-[#fbbf24]"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+  </svg>
+);
 
-  // Read/Unread Logic
+const Notifications = () => {
+  // 🔥 Strict Production State: Starts totally empty
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 🔥 1. FETCH REAL NOTIFICATIONS FROM BACKEND
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+
+        const API_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
+
+        const res = await fetch(`${API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+
+        if (
+          data.success &&
+          data.notifications &&
+          data.notifications.length > 0
+        ) {
+          const mappedNotifications = data.notifications.map((notif) => ({
+            ...notif,
+            icon:
+              notif.type === "match" ? (
+                <Heart
+                  size={16}
+                  className="text-[#e02c5a]"
+                  fill="currentColor"
+                />
+              ) : notif.type === "view" ? (
+                <Eye size={16} className="text-blue-500" />
+              ) : notif.type === "message" ? (
+                <MessageSquare size={16} className="text-green-500" />
+              ) : (
+                <Bell size={16} className="text-gray-500" />
+              ),
+          }));
+          setNotifications(mappedNotifications);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAllAsRead = () => {
+  // 🔥 2. REAL API INTEGRATION: MARK ALL AS READ
+  const markAllAsRead = async () => {
+    // Optimistic UI update
     setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
+
+    try {
+      const token = localStorage.getItem("token");
+      const API_URL = import.meta.env.VITE_API_BASE_URL
+        ? import.meta.env.VITE_API_BASE_URL + "/auth"
+        : "http://localhost:5001/api/auth";
+
+      await fetch(`${API_URL}/notifications/read-all`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    }
   };
 
-  const markAsRead = (id) => {
+  // 🔥 3. REAL API INTEGRATION: MARK SINGLE AS READ
+  const markAsRead = async (id) => {
+    const notifToUpdate = notifications.find((n) => n.id === id);
+    if (notifToUpdate && notifToUpdate.isRead) return;
+
+    // Optimistic UI update
     setNotifications(
       notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
     );
+
+    try {
+      const token = localStorage.getItem("token");
+      const API_URL = import.meta.env.VITE_API_BASE_URL
+        ? import.meta.env.VITE_API_BASE_URL + "/auth"
+        : "http://localhost:5001/api/auth";
+
+      await fetch(`${API_URL}/notifications/${id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      console.error(`Failed to mark notification ${id} as read:`, error);
+    }
   };
 
   const hideScrollbar =
@@ -160,63 +220,69 @@ const Notifications = () => {
         </div>
 
         {/* Notifications List */}
-        <div className="space-y-4">
-          {notifications.map((notif) => (
-            <div
-              key={notif.id}
-              onClick={() => markAsRead(notif.id)}
-              className={`p-4 sm:p-5 rounded-3xl flex items-start gap-4 border transition-all duration-300 cursor-pointer 
-                ${
-                  notif.isRead
-                    ? "bg-white/95 backdrop-blur-md border-rose-100 hover:bg-rose-50 hover:shadow-md shadow-sm"
-                    : "bg-gradient-to-r from-[#fff0f5] to-white border-[#e02c5a]/30 shadow-md hover:shadow-lg scale-[1.01]"
-                }
-              `}
-            >
-              {/* Avatar / Icon */}
-              <div className="relative shrink-0">
-                {notif.img ? (
-                  <img
-                    src={notif.img}
-                    alt="User"
-                    className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-rose-50 border-2 border-white shadow-md flex items-center justify-center">
-                    {notif.icon}
-                  </div>
-                )}
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Sparkles className="animate-spin text-[#e02c5a]" size={36} />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((notif) => (
+              <div
+                key={notif.id}
+                onClick={() => markAsRead(notif.id)}
+                className={`p-4 sm:p-5 rounded-3xl flex items-start gap-4 border transition-all duration-300 cursor-pointer 
+                  ${
+                    notif.isRead
+                      ? "bg-white/95 backdrop-blur-md border-rose-100 hover:bg-rose-50 hover:shadow-md shadow-sm"
+                      : "bg-gradient-to-r from-[#fff0f5] to-white border-[#e02c5a]/30 shadow-md hover:shadow-lg scale-[1.01]"
+                  }
+                `}
+              >
+                {/* Avatar / Icon */}
+                <div className="relative shrink-0">
+                  {notif.img ? (
+                    <img
+                      src={notif.img}
+                      alt="User"
+                      className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-rose-50 border-2 border-white shadow-md flex items-center justify-center">
+                      {notif.icon}
+                    </div>
+                  )}
 
-                {/* Small overlay icon if image is present */}
-                {notif.img && (
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-md border border-rose-50">
-                    {notif.icon}
-                  </div>
+                  {/* Small overlay icon if image is present */}
+                  {notif.img && (
+                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-md border border-rose-50">
+                      {notif.icon}
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 pt-1">
+                  <p
+                    className={`text-[15px] sm:text-base leading-snug ${notif.isRead ? "text-gray-700 font-medium" : "text-gray-900 font-bold"}`}
+                  >
+                    {notif.text}
+                  </p>
+                  <span className="text-[11px] sm:text-xs text-gray-500 font-bold mt-2 block uppercase tracking-wider">
+                    {notif.time}
+                  </span>
+                </div>
+
+                {/* Unread Indicator Dot */}
+                {!notif.isRead && (
+                  <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] mt-2 shrink-0 shadow-[0_0_8px_rgba(224,44,90,0.6)] animate-pulse"></div>
                 )}
               </div>
-
-              {/* Content */}
-              <div className="flex-1 pt-1">
-                <p
-                  className={`text-[15px] sm:text-base leading-snug ${notif.isRead ? "text-gray-700 font-medium" : "text-gray-900 font-bold"}`}
-                >
-                  {notif.text}
-                </p>
-                <span className="text-[11px] sm:text-xs text-gray-500 font-bold mt-2 block uppercase tracking-wider">
-                  {notif.time}
-                </span>
-              </div>
-
-              {/* Unread Indicator Dot */}
-              {!notif.isRead && (
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-[#ed2c5b] to-[#c0163e] mt-2 shrink-0 shadow-[0_0_8px_rgba(224,44,90,0.6)] animate-pulse"></div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
-        {notifications.length === 0 && (
+        {!isLoading && notifications.length === 0 && (
           <div className="text-center py-20 bg-white/80 backdrop-blur-md rounded-3xl border border-rose-100 shadow-sm mt-8">
             <div className="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
               <Bell size={40} className="text-[#e02c5a]/40" />
@@ -234,23 +300,5 @@ const Notifications = () => {
     </div>
   );
 };
-
-// Custom Star Icon component
-const StarIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="text-[#fbbf24]"
-  >
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-  </svg>
-);
 
 export default Notifications;

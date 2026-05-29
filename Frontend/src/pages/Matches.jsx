@@ -21,113 +21,88 @@ const Matches = () => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔥 Real matches + Local liked matches
+  // 🔥 Real matches data from backend
   const [matchesData, setMatchesData] = useState([]);
 
-  // 🔥 Extended Dummy Data (Backup ke liye)
-  const dummyMatches = [
-    {
-      id: "m1",
-      name: "Anjali Sharma",
-      age: 25,
-      height: "5' 4\"",
-      complexion: "Fair",
-      location: "Jaipur, Rajasthan",
-      religion: "Hindu",
-      caste: "Brahmin",
-      subCaste: "Gaur",
-      education: "B.Tech CS",
-      profession: "Software Engineer",
-      salary: "₹ 6 LPA",
-      fatherName: "Mr. Rajeev Sharma",
-      familyType: "Nuclear",
-      familyMembers: 5,
-      siblingCount: 2,
-      siblings: [{ name: "Rahul", status: "Married" }],
-      about: "I am a simple, caring, and understanding person.",
-      isOnline: true,
-      matchPercentage: 92,
-      pics: 5,
-      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "m2",
-      name: "Priya Singh",
-      age: 24,
-      height: "5' 2\"",
-      complexion: "Wheatish",
-      location: "Delhi, NCR",
-      religion: "Hindu",
-      caste: "Rajput",
-      subCaste: "Chauhan",
-      education: "MBBS",
-      profession: "Doctor",
-      salary: "₹ 8 LPA",
-      fatherName: "Dr. Vikram Singh",
-      familyType: "Joint",
-      familyMembers: 6,
-      siblingCount: 1,
-      siblings: [{ name: "Arjun", status: "Single" }],
-      about: "Passionate about my career in medicine. Love traveling.",
-      isOnline: true,
-      matchPercentage: 88,
-      pics: 6,
-      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "m3",
-      name: "Neha Verma",
-      age: 26,
-      height: "5' 5\"",
-      complexion: "Very Fair",
-      location: "Indore, MP",
-      religion: "Hindu",
-      caste: "Vaishya",
-      subCaste: "Gupta",
-      education: "CA",
-      profession: "Chartered Accountant",
-      salary: "₹ 6.5 LPA",
-      fatherName: "Mr. Suresh Verma",
-      familyType: "Nuclear",
-      familyMembers: 3,
-      siblingCount: 0,
-      siblings: [],
-      about: "Independent and career-oriented.",
-      isOnline: false,
-      matchPercentage: 85,
-      pics: 3,
-      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-  ];
-
-  // 🔥 FETCH LIKED MATCHES
+  // 🔥 FETCH REAL LIKED MATCHES FROM BACKEND
   useEffect(() => {
     const fetchMyMatches = async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        // Local storage se liked profiles ke ID nikalna
         const localLiked =
           JSON.parse(localStorage.getItem("likedProfilesData")) || [];
 
-        // Agar real matches aur local likes dono empty hain, tabhi dummy dikhaao
         if (localLiked.length === 0) {
-          setMatchesData(dummyMatches);
-        } else {
-          // Reverse taaki latest like upar aaye
-          setMatchesData(localLiked.reverse());
+          setMatchesData([]);
+          setIsLoading(false);
+          return;
         }
 
-        setTimeout(() => setIsLoading(false), 800);
+        const API_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
+
+        // Yahan par ideally hum backend ko IDs bhejkar fresh data maang sakte hain,
+        // ya phir "all-users" se filter kar sakte hain. For safety, getting all users and filtering:
+        const res = await fetch(`${API_URL}/all-users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.users) {
+          const likedIds = localLiked.map((profile) => profile.id);
+
+          const mappedMatches = data.users
+            .filter((u) => likedIds.includes(u._id))
+            .map((u) => {
+              let primaryImg =
+                "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80"; // Default
+              if (u.profileImages && u.profileImages.length > 0)
+                primaryImg = u.profileImages[0];
+              else if (u.profileImage) primaryImg = u.profileImage;
+
+              return {
+                ...u,
+                id: u._id,
+                name: u.fullName || u.name || "Unknown",
+                img: primaryImg,
+                matchPercentage: Math.floor(Math.random() * (95 - 75 + 1)) + 75,
+                pics: u.profileImages
+                  ? u.profileImages.length
+                  : u.profileImage
+                    ? 1
+                    : 0,
+                location:
+                  u.cityVillage && u.district
+                    ? `${u.cityVillage}, ${u.district}`
+                    : u.state || "India",
+                profession: u.occupation || "Not Specified",
+                isOnline: true, // Assuming active users are online for now
+              };
+            });
+
+          setMatchesData(mappedMatches.reverse()); // Latest first
+        }
       } catch (error) {
         console.error("Error fetching matches:", error);
-        setMatchesData(dummyMatches);
+        setMatchesData([]);
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchMyMatches();
-  }, []);
+  }, [navigate]);
 
   // 🔥 UNLIKE LOGIC (Confirmation + State Update + LocalStorage Update)
-  const handleUnlike = (e, profileId, profileName) => {
+  const handleUnlike = async (e, profileId, profileName) => {
     e.stopPropagation(); // Card click ko roko
 
     // Confirmation popup
@@ -145,8 +120,24 @@ const Matches = () => {
       // 2. UI/State se turant hatao
       setMatchesData((prev) => prev.filter((p) => p.id !== profileId));
 
-      // Optional: Backend API call to unlike
-      // await fetch('/api/unlike', { ... });
+      // 3. Backend par unlike update (Optional but recommended)
+      try {
+        const token = localStorage.getItem("token");
+        const API_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
+
+        await fetch(`${API_URL}/unlike-profile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ unlikedUserId: profileId }),
+        });
+      } catch (error) {
+        console.error("Unlike API failed:", error);
+      }
     }
   };
 
@@ -254,7 +245,7 @@ const Matches = () => {
                   key={profile.id}
                   onClick={() => setSelectedProfile(profile)}
                   className="slide-up-fade bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-[2rem] p-3 sm:p-5 shadow-[0_8px_30px_rgba(224,44,90,0.06)] border border-rose-100/50 flex flex-row gap-3 sm:gap-6 hover:shadow-[0_20px_50px_rgba(224,44,90,0.15)] hover:-translate-y-1.5 hover:border-rose-200 transition-all duration-300 cursor-pointer group"
-                  style={{ animationDelay: `${index * 0.1}s` }} // Staggered entrance animation
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {/* Card Image */}
                   <div className="relative w-[100px] sm:w-[160px] h-[140px] sm:h-[200px] shrink-0 rounded-xl sm:rounded-[1.5rem] overflow-hidden bg-rose-50 border-4 border-white shadow-lg z-10 group-hover:border-rose-50 transition-colors">
@@ -264,7 +255,7 @@ const Matches = () => {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90"></div>
-                    <div className="absolute bottom-2 left-2">
+                    <div className="absolute bottom-2 left-2 flex flex-col gap-1">
                       <span
                         className={`text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded-lg text-white border border-white/20 backdrop-blur-md flex items-center gap-1.5 shadow-sm ${profile.isOnline ? "bg-green-500/80" : "bg-gray-600/80"}`}
                       >
@@ -273,6 +264,11 @@ const Matches = () => {
                         ></span>
                         {profile.isOnline ? "Online" : "Offline"}
                       </span>
+                      {profile.pics > 0 && (
+                        <span className="text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded-lg text-white bg-black/40 border border-white/20 backdrop-blur-md flex items-center gap-1 shadow-sm w-fit">
+                          <Camera size={10} /> {profile.pics}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -290,7 +286,7 @@ const Matches = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-2 text-[11px] sm:text-[14px] text-gray-600 font-medium">
                       <p className="flex items-center gap-2 truncate">
                         <User size={14} className="text-[#eab308] shrink-0" />{" "}
-                        {profile.age} Yrs, {profile.height}
+                        {profile.age || "N/A"} Yrs, {profile.height || "N/A"}
                       </p>
                       <p className="flex items-center gap-2 truncate">
                         <MapPin size={14} className="text-[#e02c5a] shrink-0" />{" "}
@@ -301,7 +297,7 @@ const Matches = () => {
                           size={14}
                           className="text-purple-500 shrink-0"
                         />{" "}
-                        {profile.religion} • {profile.caste}
+                        {profile.religion} • {profile.caste || "N/A"}
                       </p>
                       <p className="flex items-center gap-2 truncate">
                         <Briefcase

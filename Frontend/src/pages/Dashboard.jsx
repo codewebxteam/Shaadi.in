@@ -10,7 +10,6 @@ import {
   Filter,
   MapPin,
   Sparkles,
-  Flower2,
   BookOpen,
   Briefcase,
 } from "lucide-react";
@@ -19,11 +18,14 @@ import ProfileDetails from "../components/ProfileDetails";
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  // 🔥 1. MOCK CURRENT USER
-  const [currentUser, setCurrentUser] = useState({
-    id: "current_123",
-    gender: "Male",
-    religion: "Hindu",
+  // 🔥 1. REAL CURRENT USER FROM LOCAL STORAGE
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = JSON.parse(localStorage.getItem("user")) || {};
+    return {
+      id: savedUser.id || "",
+      gender: savedUser.gender || "Male",
+      religion: savedUser.religion || "Hindu",
+    };
   });
 
   // 🔥 STATES
@@ -44,444 +46,76 @@ const Dashboard = () => {
     searchDistrict: "",
     ageGroup: "All",
     occupation: "All",
-    religion: currentUser.religion,
+    religion: currentUser.religion || "All",
     maritalStatus: "All",
   });
 
-  // 🔥 2. EXTENDED DUMMY DATA (Online/Offline Hata Diya Gaya Hai)
-  const dummyProfiles = [
-    {
-      id: "d1",
-      name: "Anjali Sharma",
-      gender: "Female",
-      age: 25,
-      height: "5'4\"",
-      maritalStatus: "Single",
-      location: "Lucknow, UP",
-      religion: "Hindu",
-      caste: "Brahmin",
-      subCaste: "Gaur",
-      education: "B.Tech",
-      profession: "Software Engineer",
-      occupation: "Private Job",
-      salary: "₹ 6 LPA",
-      familyType: "Nuclear",
-      familyMembers: 4,
-      siblingCount: 1,
-      siblings: [{ name: "Rahul", status: "Single" }],
-      about: "Looking for a caring and understanding partner.",
-      matchPercentage: 92,
-      pics: 5,
-      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d2",
-      name: "Priya Singh",
-      gender: "Female",
-      age: 24,
-      height: "5'2\"",
-      maritalStatus: "Single",
-      location: "Delhi",
-      religion: "Hindu",
-      caste: "Rajput",
-      subCaste: "Chauhan",
-      education: "MBBS",
-      profession: "Doctor",
-      occupation: "Government Job",
-      salary: "₹ 8 LPA",
-      familyType: "Joint",
-      familyMembers: 6,
-      siblingCount: 2,
-      siblings: [],
-      about: "Passionate about my career in medicine.",
-      matchPercentage: 88,
-      pics: 6,
-      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d3",
-      name: "Neha Verma",
-      gender: "Female",
-      age: 28,
-      height: "5'5\"",
-      maritalStatus: "Divorced",
-      location: "Prayagraj, UP",
-      religion: "Hindu",
-      caste: "Kayastha",
-      subCaste: "Srivastava",
-      education: "CA",
-      profession: "Chartered Acct.",
-      occupation: "Private Job",
-      salary: "₹ 12 LPA",
-      familyType: "Nuclear",
-      familyMembers: 3,
-      siblingCount: 0,
-      siblings: [],
-      about: "Independent and career-oriented.",
-      matchPercentage: 80,
-      pics: 3,
-      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d4",
-      name: "Sneha Mishra",
-      gender: "Female",
-      age: 26,
-      height: "5'3\"",
-      maritalStatus: "Single",
-      location: "Lucknow, UP",
-      religion: "Hindu",
-      caste: "Brahmin",
-      subCaste: "Mishra",
-      education: "MBA",
-      profession: "HR Manager",
-      occupation: "Private Job",
-      salary: "₹ 5 LPA",
-      familyType: "Nuclear",
-      familyMembers: 5,
-      siblingCount: 1,
-      siblings: [],
-      about: "Love traveling and exploring.",
-      matchPercentage: 85,
-      pics: 4,
-      img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d5",
-      name: "Kavya Tiwari",
-      gender: "Female",
-      age: 25,
-      height: "5'6\"",
-      maritalStatus: "Single",
-      location: "Ayodhya, UP",
-      religion: "Hindu",
-      caste: "Brahmin",
-      subCaste: "Tiwari",
-      education: "B.Ed",
-      profession: "Teacher",
-      occupation: "Government Job",
-      salary: "₹ 4 LPA",
-      familyType: "Joint",
-      familyMembers: 8,
-      siblingCount: 2,
-      siblings: [],
-      about: "Traditional with modern values.",
-      matchPercentage: 90,
-      pics: 5,
-      img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d6",
-      name: "Zoya Khan",
-      gender: "Female",
-      age: 26,
-      height: "5'5\"",
-      maritalStatus: "Single",
-      location: "Lucknow, UP",
-      religion: "Muslim",
-      caste: "Pathan",
-      subCaste: "-",
-      education: "B.Des",
-      profession: "Interior Designer",
-      occupation: "Business",
-      salary: "₹ 6 LPA",
-      familyType: "Nuclear",
-      familyMembers: 4,
-      siblingCount: 1,
-      siblings: [],
-      about: "Creative and ambitious.",
-      matchPercentage: 75,
-      pics: 4,
-      img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d7",
-      name: "Pooja Chaurasia",
-      gender: "Female",
-      age: 24,
-      height: "5'1\"",
-      maritalStatus: "Single",
-      location: "Sant Kabir Nagar",
-      religion: "Hindu",
-      caste: "Chaurasia",
-      subCaste: "-",
-      education: "B.Com",
-      profession: "Bank PO",
-      occupation: "Government Job",
-      salary: "₹ 7 LPA",
-      familyType: "Nuclear",
-      familyMembers: 5,
-      siblingCount: 2,
-      siblings: [],
-      about: "Simple girl from a good family.",
-      matchPercentage: 88,
-      pics: 3,
-      img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d8",
-      name: "Shruti Agarwal",
-      gender: "Female",
-      age: 29,
-      height: "5'4\"",
-      maritalStatus: "Widowed",
-      location: "Delhi",
-      religion: "Hindu",
-      caste: "Baniya",
-      subCaste: "Agarwal",
-      education: "M.Tech",
-      profession: "UI/UX Designer",
-      occupation: "Private Job",
-      salary: "₹ 15 LPA",
-      familyType: "Nuclear",
-      familyMembers: 3,
-      siblingCount: 0,
-      siblings: [],
-      about: "Looking for a fresh start.",
-      matchPercentage: 82,
-      pics: 6,
-      img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d9",
-      name: "Riya Sharma",
-      gender: "Female",
-      age: 23,
-      height: "5'3\"",
-      maritalStatus: "Single",
-      location: "Kanpur, UP",
-      religion: "Hindu",
-      caste: "Brahmin",
-      subCaste: "Sharma",
-      education: "BA",
-      profession: "Not Working",
-      occupation: "Not Working",
-      salary: "-",
-      familyType: "Joint",
-      familyMembers: 7,
-      siblingCount: 2,
-      siblings: [],
-      about: "Family oriented.",
-      matchPercentage: 85,
-      pics: 4,
-      img: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d10",
-      name: "Megha Soni",
-      gender: "Female",
-      age: 31,
-      height: "5'5\"",
-      maritalStatus: "Divorced",
-      location: "Varanasi, UP",
-      religion: "Hindu",
-      caste: "Sunar",
-      subCaste: "Soni",
-      education: "MBA",
-      profession: "Boutique Owner",
-      occupation: "Business",
-      salary: "₹ 8 LPA",
-      familyType: "Nuclear",
-      familyMembers: 3,
-      siblingCount: 1,
-      siblings: [],
-      about: "I run my own business.",
-      matchPercentage: 78,
-      pics: 5,
-      img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d11",
-      name: "Kritika Sharma",
-      gender: "Female",
-      age: 27,
-      height: "5'6\"",
-      maritalStatus: "Single",
-      location: "Lucknow, UP",
-      religion: "Hindu",
-      caste: "Brahmin",
-      subCaste: "Sharma",
-      education: "PhD",
-      profession: "Professor",
-      occupation: "Government Job",
-      salary: "₹ 9 LPA",
-      familyType: "Nuclear",
-      familyMembers: 4,
-      siblingCount: 1,
-      siblings: [],
-      about: "Love reading and teaching.",
-      matchPercentage: 94,
-      pics: 7,
-      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d12",
-      name: "Shalini Gupta",
-      gender: "Female",
-      age: 25,
-      height: "5'2\"",
-      maritalStatus: "Single",
-      location: "Noida, UP",
-      religion: "Hindu",
-      caste: "Baniya",
-      subCaste: "Gupta",
-      education: "B.Com",
-      profession: "Financial Analyst",
-      occupation: "Private Job",
-      salary: "₹ 8 LPA",
-      familyType: "Joint",
-      familyMembers: 5,
-      siblingCount: 1,
-      siblings: [],
-      about: "Ambitious and fun.",
-      matchPercentage: 86,
-      pics: 4,
-      img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d13",
-      name: "Divya Rastogi",
-      gender: "Female",
-      age: 24,
-      height: "5'4\"",
-      maritalStatus: "Single",
-      location: "Lucknow, UP",
-      religion: "Hindu",
-      caste: "Rastogi",
-      subCaste: "-",
-      education: "B.Pharma",
-      profession: "Pharmacist",
-      occupation: "Private Job",
-      salary: "₹ 4 LPA",
-      familyType: "Nuclear",
-      familyMembers: 4,
-      siblingCount: 2,
-      siblings: [],
-      about: "Caring nature.",
-      matchPercentage: 81,
-      pics: 3,
-      img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d14",
-      name: "Akanksha Rajput",
-      gender: "Female",
-      age: 26,
-      height: "5'5\"",
-      maritalStatus: "Single",
-      location: "Agra, UP",
-      religion: "Hindu",
-      caste: "Rajput",
-      subCaste: "Chauhan",
-      education: "B.Arch",
-      profession: "Architect",
-      occupation: "Business",
-      salary: "₹ 10 LPA",
-      familyType: "Nuclear",
-      familyMembers: 5,
-      siblingCount: 1,
-      siblings: [],
-      about: "I love designing spaces.",
-      matchPercentage: 89,
-      pics: 6,
-      img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d15",
-      name: "Sara Thomas",
-      gender: "Female",
-      age: 27,
-      height: "5'6\"",
-      maritalStatus: "Single",
-      location: "Delhi",
-      religion: "Christian",
-      caste: "Catholic",
-      subCaste: "-",
-      education: "MA English",
-      profession: "Journalist",
-      occupation: "Private Job",
-      salary: "₹ 7 LPA",
-      familyType: "Nuclear",
-      familyMembers: 3,
-      siblingCount: 1,
-      siblings: [],
-      about: "Love writing and exploring stories.",
-      matchPercentage: 72,
-      pics: 5,
-      img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "d16",
-      name: "Rajat Verma",
-      gender: "Male",
-      age: 28,
-      height: "5'10\"",
-      maritalStatus: "Single",
-      location: "Lucknow, UP",
-      religion: "Hindu",
-      caste: "Kayastha",
-      subCaste: "Verma",
-      education: "B.Tech",
-      profession: "DevOps",
-      occupation: "Private Job",
-      salary: "₹ 12 LPA",
-      familyType: "Nuclear",
-      familyMembers: 4,
-      siblingCount: 0,
-      siblings: [],
-      about: "Tech enthusiast.",
-      matchPercentage: 80,
-      pics: 3,
-      img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80",
-    },
-  ];
-
-  // 🔥 3. REAL-TIME DATA FETCHING (MongoDB se aayega)
+  // 🔥 2. REAL-TIME DATA FETCHING FROM BACKEND
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("token");
-        const API_URL =
-          import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api/auth";
+        if (!token) {
+          navigate("/login");
+          return;
+        }
 
-        // JAB PRODUCTION PAR JAYEIN, IS COMMENT KO HATA DEIN:
-        /*
+        const API_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
+
         const res = await fetch(`${API_URL}/all-users`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
+
         const data = await res.json();
-        if (data.success) {
-           const mappedUsers = data.users.map(u => ({
+
+        if (data.success && data.users) {
+          const mappedUsers = data.users.map((u) => {
+            // Extract primary image properly
+            let primaryImg =
+              "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80"; // Default Placeholder
+            if (u.profileImages && u.profileImages.length > 0)
+              primaryImg = u.profileImages[0];
+            else if (u.profileImage) primaryImg = u.profileImage;
+
+            return {
               ...u,
               id: u._id,
-              img: u.profileImage || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2",
+              name: u.fullName || u.name || "Unknown",
+              img: primaryImg,
               matchPercentage: Math.floor(Math.random() * (95 - 75 + 1)) + 75,
-              pics: 1
-           }));
-           setRealProfiles(mappedUsers);
+              pics: u.profileImages
+                ? u.profileImages.length
+                : u.profileImage
+                  ? 1
+                  : 0,
+              location:
+                u.cityVillage && u.district
+                  ? `${u.cityVillage}, ${u.district}`
+                  : u.state || "India",
+              profession: u.occupation || "Not Specified",
+            };
+          });
+          setRealProfiles(mappedUsers);
         }
-        */
-
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 1000);
       } catch (error) {
         console.error("Error fetching real users:", error);
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [navigate]);
 
-  const allProfiles = [...realProfiles, ...dummyProfiles];
-
-  // 🔥 4. AUTO MATCHING & USER FILTERS (Strict Gender Rules)
+  // 🔥 3. AUTO MATCHING & USER FILTERS (Strict Rules)
   const filteredProfiles = useMemo(() => {
-    return allProfiles.filter((profile) => {
-      // 🔥 STRICT GENDER LOGIC: Sirf opposite gender dikhega!
+    return realProfiles.filter((profile) => {
+      // Logic 1: Strict Gender Logic (Opposite Gender Only) & Remove Current User
+      if (profile.id === currentUser.id) return false;
+
       const targetGender = currentUser.gender === "Male" ? "Female" : "Male";
-      // Agar backend se gender missing hai ya match nahi kar raha toh turant reject karega
       if (
         !profile.gender ||
         profile.gender.toLowerCase() !== targetGender.toLowerCase()
@@ -496,12 +130,13 @@ const Dashboard = () => {
       // Logic 3: Location / Name Search
       if (filters.searchDistrict) {
         const searchTerm = filters.searchDistrict.toLowerCase();
-        if (
-          !profile.location.toLowerCase().includes(searchTerm) &&
-          !profile.name.toLowerCase().includes(searchTerm)
-        ) {
-          return false;
-        }
+        const locMatch = profile.location
+          ? profile.location.toLowerCase().includes(searchTerm)
+          : false;
+        const nameMatch = profile.name
+          ? profile.name.toLowerCase().includes(searchTerm)
+          : false;
+        if (!locMatch && !nameMatch) return false;
       }
 
       // Logic 4: Age Group
@@ -530,7 +165,7 @@ const Dashboard = () => {
 
       return true;
     });
-  }, [filters, currentUser, allProfiles]);
+  }, [filters, currentUser, realProfiles]);
 
   // Infinite Scroll
   useEffect(() => {
@@ -553,16 +188,16 @@ const Dashboard = () => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🔥 5. LIKE LOGIC
+  // 🔥 4. REAL API LIKE LOGIC
   const handleLike = async (e, profile) => {
     e.stopPropagation();
 
     if (!likedProfiles.has(profile.id)) {
+      // Optimistic UI Update
       setLikedProfiles((prev) => new Set(prev).add(profile.id));
 
       const existingLikes =
         JSON.parse(localStorage.getItem("likedProfilesData")) || [];
-
       if (!existingLikes.some((p) => p.id === profile.id)) {
         const updatedLikes = [...existingLikes, profile];
         localStorage.setItem("likedProfilesData", JSON.stringify(updatedLikes));
@@ -570,19 +205,18 @@ const Dashboard = () => {
 
       try {
         const token = localStorage.getItem("token");
-        const API_URL =
-          import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api/auth";
+        const API_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
 
-        /*
         await fetch(`${API_URL}/like-profile`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ likedUserId: profile.id })
+          body: JSON.stringify({ likedUserId: profile.id }),
         });
-        */
 
         alert(
           `💖 You liked ${profile.name}! A match request notification has been sent.`,
@@ -660,24 +294,20 @@ const Dashboard = () => {
 
             {/* 🔥 DESKTOP FILTER BAR 🔥 */}
             <div className="hidden md:flex bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_10px_40px_rgba(224,44,90,0.1)] p-6 border border-rose-100 items-center justify-between gap-4">
-              {/* Search */}
               <div className="flex-1 border-r border-rose-100 pr-4">
                 <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
                   Search Area
                 </label>
-                <div className="flex items-center group relative">
-                  <input
-                    type="text"
-                    name="searchDistrict"
-                    value={filters.searchDistrict}
-                    onChange={handleFilterChange}
-                    placeholder="e.g. Kanpur"
-                    className="w-full bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-300"
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="searchDistrict"
+                  value={filters.searchDistrict}
+                  onChange={handleFilterChange}
+                  placeholder="e.g. Kanpur or Name"
+                  className="w-full bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none placeholder:text-gray-300"
+                />
               </div>
 
-              {/* Religion */}
               <div className="flex-1 border-r border-rose-100 px-4">
                 <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
                   Religion
@@ -687,7 +317,7 @@ const Dashboard = () => {
                     name="religion"
                     value={filters.religion}
                     onChange={handleFilterChange}
-                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer group-hover:text-[#e02c5a] transition-colors"
+                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer"
                   >
                     <option value="All">All Religion</option>
                     <option value="Hindu">Hindu</option>
@@ -702,7 +332,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Age */}
               <div className="flex-1 border-r border-rose-100 px-4">
                 <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
                   Age Group
@@ -712,7 +341,7 @@ const Dashboard = () => {
                     name="ageGroup"
                     value={filters.ageGroup}
                     onChange={handleFilterChange}
-                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer group-hover:text-[#e02c5a] transition-colors"
+                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer"
                   >
                     <option value="All">Any Age</option>
                     <option value="18-22">18 - 22 Yrs</option>
@@ -727,7 +356,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Job */}
               <div className="flex-1 border-r border-rose-100 px-4">
                 <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
                   Job Type
@@ -737,12 +365,12 @@ const Dashboard = () => {
                     name="occupation"
                     value={filters.occupation}
                     onChange={handleFilterChange}
-                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer group-hover:text-[#e02c5a] transition-colors"
+                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer"
                   >
                     <option value="All">Any Job</option>
                     <option value="Private Job">Private</option>
                     <option value="Government Job">Government</option>
-                    <option value="Business">Business</option>
+                    <option value="Business/Self-Employed">Business</option>
                     <option value="Not Working">Not Working</option>
                   </select>
                   <ChevronDown
@@ -752,7 +380,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Marital Status */}
               <div className="flex-1 px-4">
                 <label className="text-xs text-gray-400 font-bold uppercase tracking-wider block mb-1">
                   Marital Status
@@ -762,7 +389,7 @@ const Dashboard = () => {
                     name="maritalStatus"
                     value={filters.maritalStatus}
                     onChange={handleFilterChange}
-                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer group-hover:text-[#e02c5a] transition-colors"
+                    className="w-full appearance-none bg-transparent border-none text-sm font-bold text-gray-800 focus:outline-none cursor-pointer"
                   >
                     <option value="All">Any Status</option>
                     <option value="Single">Single</option>
@@ -871,7 +498,7 @@ const Dashboard = () => {
                   No Matches Found
                 </h3>
                 <p className="text-gray-500">
-                  Try adjusting your filters to see more profiles.
+                  Try adjusting your filters or wait for new members to join.
                 </p>
               </div>
             ) : (
@@ -885,7 +512,7 @@ const Dashboard = () => {
                       onClick={() => setSelectedProfile(profile)}
                       className="animate-fade-in bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-[28px] p-3 sm:p-5 shadow-[0_8px_30px_rgba(224,44,90,0.06)] border border-rose-100 flex flex-row gap-3 sm:gap-6 hover:shadow-[0_15px_40px_rgba(224,44,90,0.12)] hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group"
                     >
-                      {/* Image Container (Online/Offline Removed) */}
+                      {/* Image Container */}
                       <div className="relative w-[100px] sm:w-[150px] h-[140px] sm:h-[190px] shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-rose-50 border-2 border-white shadow-md z-10">
                         <img
                           src={profile.img}
@@ -914,28 +541,29 @@ const Dashboard = () => {
                             <User
                               size={12}
                               className="text-[#eab308] shrink-0 sm:w-3.5 sm:h-3.5"
-                            />{" "}
-                            {profile.age} Yrs, {profile.height}
+                            />
+                            {profile.age || "N/A"} Yrs,{" "}
+                            {profile.height || "N/A"}
                           </p>
                           <p className="flex items-center gap-1.5 truncate">
                             <MapPin
                               size={12}
                               className="text-[#e02c5a] shrink-0 sm:w-3.5 sm:h-3.5"
-                            />{" "}
+                            />
                             {profile.location}
                           </p>
                           <p className="flex items-center gap-1.5 truncate">
                             <BookOpen
                               size={12}
                               className="text-purple-500 shrink-0 sm:w-3.5 sm:h-3.5"
-                            />{" "}
-                            {profile.religion} • {profile.caste}
+                            />
+                            {profile.religion} • {profile.caste || "N/A"}
                           </p>
                           <p className="flex items-center gap-1.5 truncate">
                             <Briefcase
                               size={12}
                               className="text-blue-500 shrink-0 sm:w-3.5 sm:h-3.5"
-                            />{" "}
+                            />
                             {profile.profession}
                           </p>
                         </div>
@@ -969,7 +597,6 @@ const Dashboard = () => {
             )}
           </div>
         ) : (
-          /* 🔥 VIEW 2: FULL PROFILE COMPONENT 🔥 */
           <ProfileDetails
             profile={selectedProfile}
             onBack={() => setSelectedProfile(null)}

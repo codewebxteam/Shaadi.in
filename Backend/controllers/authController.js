@@ -303,3 +303,75 @@ exports.deleteAccount = async (req, res) => {
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
+// =====================================================================
+// 🔥 CHANGE PASSWORD CONTROLLER
+// =====================================================================
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    // 1. User ko database se dhundo
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // 2. Old password verify karo
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: "Incorrect current password" });
+    }
+
+    // 3. New password hash karo
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // 4. Update and save
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Change Password Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// =====================================================================
+// 🔥 MISSING DASHBOARD & MATCHES CONTROLLERS
+// =====================================================================
+
+// Get All Users (For Dashboard matches)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.user.id } }).select("-password");
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// Like Profile
+exports.likeProfile = async (req, res) => {
+  try {
+    const { likedUserId } = req.body;
+    res.status(200).json({ success: true, message: "Profile liked successfully" });
+  } catch (error) {
+    console.error("Error liking profile:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// Unlike Profile
+exports.unlikeProfile = async (req, res) => {
+  try {
+    const { unlikedUserId } = req.body;
+    res.status(200).json({ success: true, message: "Profile unliked successfully" });
+  } catch (error) {
+    console.error("Error unliking profile:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};

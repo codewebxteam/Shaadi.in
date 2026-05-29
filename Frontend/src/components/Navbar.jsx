@@ -21,27 +21,27 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // 🔥 Naye State Variables: Real Name aur Phone Number ke liye
+  // 🔥 State Variables: Real Name, Phone Number, and Unread Notifications
   const [userName, setUserName] = useState("User");
   const [userPhone, setUserPhone] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isProfileSetupRoute = location.pathname === "/profile-setup";
-
   const isActive = (path) => location.pathname === path;
 
+  // 1. Auth Status & User Data Fetching
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem("token");
       setIsLoggedIn(!!token);
 
-      // 🔥 LocalStorage se User ka data nikalna
       if (token) {
         try {
           const userDataString = localStorage.getItem("user");
           if (userDataString) {
             const userData = JSON.parse(userDataString);
             setUserName(userData.name || "User");
-            setUserPhone(userData.phone || ""); // Phone number fetch karna
+            setUserPhone(userData.phone || "");
           }
         } catch (error) {
           console.error("Error parsing user data from localStorage:", error);
@@ -57,9 +57,43 @@ const Navbar = () => {
     };
   }, []);
 
+  // 🔥 2. REAL-TIME NOTIFICATION FETCHING LOGIC
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (!isLoggedIn) return;
+      try {
+        const token = localStorage.getItem("token");
+        const API_URL = import.meta.env.VITE_API_BASE_URL
+          ? import.meta.env.VITE_API_BASE_URL + "/auth"
+          : "http://localhost:5001/api/auth";
+
+        const res = await fetch(`${API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+        if (data.success && data.notifications) {
+          // Unread notifications count
+          const count = data.notifications.filter((n) => !n.isRead).length;
+          setUnreadCount(count);
+        }
+      } catch (error) {
+        console.error("Error fetching notification count:", error);
+      }
+    };
+
+    // Page load ya route change hone par check karega (Instant update)
+    fetchUnreadCount();
+
+    // Har 30 seconds me background me check karega naye notifications ke liye (Real-time feel)
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn, location.pathname]); // location.pathname se page change hone par count turant update hoga
+
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("user"); // 🔥 Logout par user data bhi delete karein
+    localStorage.removeItem("user");
     window.dispatchEvent(new Event("authChange"));
     setIsLoggedIn(false);
     setShowProfileMenu(false);
@@ -197,9 +231,12 @@ const Navbar = () => {
                 }`}
               >
                 Notifications
-                <span className="bg-[#e02c5a] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-1 -right-1 shadow-sm animate-pulse">
-                  3
-                </span>
+                {/* 🔥 REAL-TIME BADGE */}
+                {unreadCount > 0 && (
+                  <span className="bg-[#e02c5a] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-1 -right-1 shadow-sm animate-pulse">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
               <RouterLink
                 to="/premium"
@@ -232,9 +269,12 @@ const Navbar = () => {
                     : "text-gray-600"
                 }
               />
-              <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white">
-                3
-              </span>
+              {/* 🔥 REAL-TIME BADGE */}
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </div>
 
             <div className="relative">
@@ -254,7 +294,6 @@ const Navbar = () => {
               {showProfileMenu && (
                 <div className="absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_15px_40px_rgba(224,44,90,0.15)] border border-rose-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-4 border-b border-rose-50 bg-gradient-to-b from-rose-50/50 to-transparent">
-                    {/* 🔥 Dynamic Name and Phone Number */}
                     <p className="text-sm font-bold text-gray-800 font-serif truncate">
                       {userName}
                     </p>
@@ -284,9 +323,13 @@ const Navbar = () => {
                     >
                       <Heart size={16} /> My Matches
                     </RouterLink>
-                    <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a] transition-colors">
+                    <RouterLink
+                      to="/account-settings"
+                      onClick={() => setShowProfileMenu(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${isActive("/account-settings") ? "bg-rose-50 text-[#e02c5a]" : "text-gray-700 hover:bg-rose-50 hover:text-[#e02c5a]"}`}
+                    >
                       <Settings size={16} /> Account Settings
-                    </button>
+                    </RouterLink>
                   </div>
                   <div className="p-2 border-t border-rose-50">
                     <button
@@ -370,9 +413,12 @@ const Navbar = () => {
                 : "group-hover:fill-rose-50"
             }
           />
-          <span className="absolute top-0 right-3 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
-            3
-          </span>
+          {/* 🔥 REAL-TIME BADGE */}
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-3 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
           <span
             className={`text-[10px] ${isActive("/notifications") ? "font-extrabold" : "font-medium"}`}
           >

@@ -17,6 +17,8 @@ import Matches from "./pages/Matches";
 import FinalProfile from "./pages/FinalProfile";
 import Notifications from "./pages/Notifications";
 import PremiumPlans from "./pages/Premium";
+import ScrollToTop from "./components/ScrollToTop"; 
+import AccountSettings from "./pages/AccountSettings";
 
 // 🔥 Naya Protected Route Component
 // Ye component routes ko guard karega
@@ -46,6 +48,7 @@ const ProtectedRoute = ({ children, requireProfileComplete = true }) => {
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen bg-[#fff0f5] flex flex-col font-sans">
         <main className="flex-grow">
           <Routes>
@@ -140,6 +143,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route
+              path="/account-settings"
+              element={
+                <ProtectedRoute>
+                  <Navbar />
+                  <AccountSettings />
+                </ProtectedRoute>
+              }
+            />
+            
           </Routes>
         </main>
       </div>
