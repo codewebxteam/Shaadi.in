@@ -20,17 +20,13 @@ const generateToken = (id) => {
 exports.sendOtp = async (req, res) => {
   try {
     const { phone } = req.body;
-
-    // 🔥 UNIVERSAL BYPASS LOGIC FOR TESTING
     return res.status(200).json({ success: true, message: 'Universal Bypass Active: OTP sent successfully (Use 000000)' });
-
+    
+    // (Bypass logic active hone ki wajah se yahan ka code reach nahi hoga, but structure waisa hi rakha hai)
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await Otp.deleteMany({ phone });
     await Otp.create({ phone, otp: generatedOtp });
-
-    // 🔥 TODO: WhatsApp API Code
     console.log(`WhatsApp OTP sent to ${phone}: ${generatedOtp}`);
-
     res.status(200).json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -41,8 +37,6 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { phone, otp } = req.body;
-
-    // 🔥 UNIVERSAL BYPASS LOGIC FOR TESTING
     if (otp === '000000') {
       return res.status(200).json({ success: true, message: 'Universal Bypass OTP Verified' });
     }
@@ -117,7 +111,7 @@ exports.login = async (req, res) => {
         id: user._id, 
         name: user.name, 
         phone: user.phone,
-        profileImage: user.profileImage, // Login ke time pe image bhi bhej do
+        profileImage: user.profileImage, 
         isProfileComplete: user.isProfileComplete 
       },
       token: generateToken(user._id)
@@ -132,6 +126,11 @@ exports.setupProfile = async (req, res) => {
   try {
     const userId = req.user.id; 
     let profileData = { ...req.body };
+    
+    // 🔥 FIX FOR CAST TO STRING ERROR: Remove arrays coming from frontend
+    delete profileData.profileImage;
+    delete profileData.profileImages;
+
     let profileImageUrl = "";
 
     if (profileData.siblings && typeof profileData.siblings === 'string') {
@@ -144,7 +143,6 @@ exports.setupProfile = async (req, res) => {
 
     if (req.file) {
       const uploadResponse = await imagekit.upload({
-        // 🔥 ERROR FIX: Direct buffer bhejney se fat rha tha, base64 convert kiya
         file: req.file.buffer.toString("base64"), 
         fileName: `profile_${userId}_${Date.now()}.jpg`, 
         folder: "/LocalShaadi_Profiles", 
@@ -158,15 +156,14 @@ exports.setupProfile = async (req, res) => {
     };
 
     if (profileImageUrl) {
-      updatePayload.profileImage = profileImageUrl;
-      // Naye multi-image setup ke liye pehli image array me bhi dal di
-      updatePayload.profileImages = [profileImageUrl];
+      updatePayload.profileImage = String(profileImageUrl);
+      updatePayload.profileImages = [String(profileImageUrl)];
     }
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      updatePayload,
-      { new: true } 
+      { $set: updatePayload }, // Using $set to avoid overwriting issues
+      { new: true, runValidators: true } 
     );
 
     if (!updatedUser) {
@@ -191,17 +188,14 @@ exports.setupProfile = async (req, res) => {
 };
 
 // =====================================================================
-// 🔥 NAYA CODE: 6. Get User Profile (Page load hote hi data bhejne ke liye)
+// 6. Get User Profile (Page load hote hi data bhejne ke liye)
 // =====================================================================
 exports.getUserProfile = async (req, res) => {
   try {
-    // req.user.id hume 'protect' middleware se mil jayega
     const user = await User.findById(req.user.id).select("-password");
-    
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-
     res.status(200).json({ success: true, user });
   } catch (error) {
     console.error("Error in getUserProfile:", error);
@@ -210,14 +204,18 @@ exports.getUserProfile = async (req, res) => {
 };
 
 // =====================================================================
-// 🔥 7. Update User Profile (UPDATED FOR MULTIPLE IMAGES)
+// 7. Update User Profile (UPDATED FOR MULTIPLE IMAGES)
 // =====================================================================
 exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     let updateData = { ...req.body };
 
-    // 1. Frontend se siblings array string format me aati hai, usko wapas JSON/Array banana padega
+    // 🔥 FIX FOR CAST TO STRING ERROR: Remove arrays coming from frontend
+    delete updateData.profileImage;
+    delete updateData.profileImages;
+
+    // 1. Parse siblings
     if (updateData.siblings && typeof updateData.siblings === 'string') {
       try {
         updateData.siblings = JSON.parse(updateData.siblings);
@@ -228,20 +226,19 @@ exports.updateUserProfile = async (req, res) => {
 
     // 2. Existing images ko parse karo jo frontend ne bheji hain
     let existingImages = [];
-    if (updateData.existingImages && typeof updateData.existingImages === 'string') {
+    if (req.body.existingImages && typeof req.body.existingImages === 'string') {
       try {
-        existingImages = JSON.parse(updateData.existingImages);
+        existingImages = JSON.parse(req.body.existingImages);
       } catch (err) {
         console.error("Error parsing existing images array:", err);
       }
     }
 
-    // 3. Agar user ne naye photos upload kiye hain (req.files aayega upload.any() ki wajah se)
+    // 3. Upload new photos
     let uploadedImageUrls = [];
     if (req.files && req.files.length > 0) {
       const uploadPromises = req.files.map((file) => {
         return imagekit.upload({
-          // 🔥 ERROR FIX: Buffer string format mein convert kiya
           file: file.buffer.toString("base64"),
           fileName: `profile_${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`,
           folder: "/LocalShaadi_Profiles",
@@ -255,9 +252,9 @@ exports.updateUserProfile = async (req, res) => {
     // 4. Combine karo dono images ko aur Max 5 limit lagao
     updateData.profileImages = [...existingImages, ...uploadedImageUrls].slice(0, 5);
 
-    // 5. Purana system break na ho isliye primary image set kardo
+    // 5. Purana system break na ho isliye primary image explicitly set kardo
     if (updateData.profileImages.length > 0) {
-      updateData.profileImage = updateData.profileImages[0];
+      updateData.profileImage = String(updateData.profileImages[0]);
     } else {
       updateData.profileImage = ""; // Sab delete kar diye gaye
     }
@@ -285,18 +282,15 @@ exports.updateUserProfile = async (req, res) => {
 };
 
 // =====================================================================
-// 🔥 8. NAYA CODE: DELETE ACCOUNT CONTROLLER
+// 8. DELETE ACCOUNT CONTROLLER
 // =====================================================================
 exports.deleteAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-    
-    // User ko DB se remove karo
     const deletedUser = await User.findByIdAndDelete(userId);
     if (!deletedUser) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-
     res.status(200).json({ success: true, message: "Account deleted successfully" });
   } catch (error) {
     console.error("Error in deleteAccount:", error);
@@ -305,30 +299,26 @@ exports.deleteAccount = async (req, res) => {
 };
 
 // =====================================================================
-// 🔥 CHANGE PASSWORD CONTROLLER
+// 9. CHANGE PASSWORD CONTROLLER
 // =====================================================================
 exports.changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
 
-    // 1. User ko database se dhundo
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // 2. Old password verify karo
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: "Incorrect current password" });
     }
 
-    // 3. New password hash karo
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // 4. Update and save
     user.password = hashedPassword;
     await user.save();
 
@@ -340,7 +330,7 @@ exports.changePassword = async (req, res) => {
 };
 
 // =====================================================================
-// 🔥 MISSING DASHBOARD & MATCHES CONTROLLERS
+// 10. DASHBOARD & MATCHES CONTROLLERS
 // =====================================================================
 
 // Get All Users (For Dashboard matches)
