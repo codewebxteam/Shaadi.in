@@ -21,13 +21,6 @@ exports.sendOtp = async (req, res) => {
   try {
     const { phone } = req.body;
     return res.status(200).json({ success: true, message: 'Universal Bypass Active: OTP sent successfully (Use 000000)' });
-    
-    // (Bypass logic active hone ki wajah se yahan ka code reach nahi hoga, but structure waisa hi rakha hai)
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    await Otp.deleteMany({ phone });
-    await Otp.create({ phone, otp: generatedOtp });
-    console.log(`WhatsApp OTP sent to ${phone}: ${generatedOtp}`);
-    res.status(200).json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -37,6 +30,7 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { phone, otp } = req.body;
+
     if (otp === '000000') {
       return res.status(200).json({ success: true, message: 'Universal Bypass OTP Verified' });
     }
@@ -66,13 +60,16 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // 🔥 FIX: Mongoose Array Error prevent karne ke liye explicitly blank set kiya hai
     const user = await User.create({
       name,
       email,
       phone,
       password: hashedPassword,
       isVerified: true,
-      isProfileComplete: false 
+      isProfileComplete: false,
+      profileImage: "", // Prevent Cast to string failed for value "[]"
+      profileImages: []
     });
 
     res.status(201).json({
@@ -86,7 +83,8 @@ exports.register = async (req, res) => {
       token: generateToken(user._id)
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Register Error:", error);
+    res.status(500).json({ success: false, message: "Registration failed. Database error." });
   }
 };
 
@@ -127,7 +125,7 @@ exports.setupProfile = async (req, res) => {
     const userId = req.user.id; 
     let profileData = { ...req.body };
     
-    // 🔥 FIX FOR CAST TO STRING ERROR: Remove arrays coming from frontend
+    // 🔥 FIX FOR CAST TO STRING ERROR
     delete profileData.profileImage;
     delete profileData.profileImages;
 
@@ -162,7 +160,7 @@ exports.setupProfile = async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $set: updatePayload }, // Using $set to avoid overwriting issues
+      { $set: updatePayload }, 
       { new: true, runValidators: true } 
     );
 
@@ -187,9 +185,7 @@ exports.setupProfile = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 6. Get User Profile (Page load hote hi data bhejne ke liye)
-// =====================================================================
+// 6. Get User Profile
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -203,19 +199,16 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 7. Update User Profile (UPDATED FOR MULTIPLE IMAGES)
-// =====================================================================
+// 7. Update User Profile
 exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     let updateData = { ...req.body };
 
-    // 🔥 FIX FOR CAST TO STRING ERROR: Remove arrays coming from frontend
+    // 🔥 FIX FOR CAST TO STRING ERROR
     delete updateData.profileImage;
     delete updateData.profileImages;
 
-    // 1. Parse siblings
     if (updateData.siblings && typeof updateData.siblings === 'string') {
       try {
         updateData.siblings = JSON.parse(updateData.siblings);
@@ -224,7 +217,6 @@ exports.updateUserProfile = async (req, res) => {
       }
     }
 
-    // 2. Existing images ko parse karo jo frontend ne bheji hain
     let existingImages = [];
     if (req.body.existingImages && typeof req.body.existingImages === 'string') {
       try {
@@ -234,7 +226,6 @@ exports.updateUserProfile = async (req, res) => {
       }
     }
 
-    // 3. Upload new photos
     let uploadedImageUrls = [];
     if (req.files && req.files.length > 0) {
       const uploadPromises = req.files.map((file) => {
@@ -249,17 +240,14 @@ exports.updateUserProfile = async (req, res) => {
       uploadedImageUrls = uploadResults.map(result => result.url);
     }
 
-    // 4. Combine karo dono images ko aur Max 5 limit lagao
     updateData.profileImages = [...existingImages, ...uploadedImageUrls].slice(0, 5);
 
-    // 5. Purana system break na ho isliye primary image explicitly set kardo
     if (updateData.profileImages.length > 0) {
       updateData.profileImage = String(updateData.profileImages[0]);
     } else {
-      updateData.profileImage = ""; // Sab delete kar diye gaye
+      updateData.profileImage = ""; 
     }
 
-    // DB mein user ko find karo aur update karo
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updateData },
@@ -281,9 +269,7 @@ exports.updateUserProfile = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 8. DELETE ACCOUNT CONTROLLER
-// =====================================================================
+// 8. DELETE ACCOUNT
 exports.deleteAccount = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -298,9 +284,7 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 9. CHANGE PASSWORD CONTROLLER
-// =====================================================================
+// 9. CHANGE PASSWORD
 exports.changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -332,8 +316,6 @@ exports.changePassword = async (req, res) => {
 // =====================================================================
 // 10. DASHBOARD & MATCHES CONTROLLERS
 // =====================================================================
-
-// Get All Users (For Dashboard matches)
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find({ _id: { $ne: req.user.id } }).select("-password");
@@ -344,7 +326,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Like Profile
 exports.likeProfile = async (req, res) => {
   try {
     const { likedUserId } = req.body;
@@ -355,7 +336,6 @@ exports.likeProfile = async (req, res) => {
   }
 };
 
-// Unlike Profile
 exports.unlikeProfile = async (req, res) => {
   try {
     const { unlikedUserId } = req.body;
@@ -364,4 +344,19 @@ exports.unlikeProfile = async (req, res) => {
     console.error("Error unliking profile:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
+};
+
+// =====================================================================
+// 🔥 11. NOTIFICATIONS CONTROLLERS (HTML Parse Crash Prevent karne ke liye)
+// =====================================================================
+exports.getNotifications = async (req, res) => {
+  res.status(200).json({ success: true, notifications: [] });
+};
+
+exports.markAllNotificationsRead = async (req, res) => {
+  res.status(200).json({ success: true });
+};
+
+exports.markNotificationRead = async (req, res) => {
+  res.status(200).json({ success: true });
 };
