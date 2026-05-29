@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer'); 
 
-// 🔥 Naye controllers (getUserProfile, updateUserProfile) ko import kiya
+// 🔥 Naye controllers (getUserProfile, updateUserProfile, deleteAccount) ko import kiya
 const { 
     sendOtp, 
     verifyOtp, 
@@ -10,7 +10,8 @@ const {
     login, 
     setupProfile, 
     getUserProfile, 
-    updateUserProfile 
+    updateUserProfile,
+    deleteAccount // Naya delete controller add kiya
 } = require('../controllers/authController');
 
 const { protect } = require('../middlewares/authMiddleware');
@@ -39,7 +40,10 @@ router.put('/setup-profile', protect, upload.single('profileImage'), setupProfil
 // 🔥 2. NAYA CODE: Page load hote hi existing profile data mangwane ke liye
 router.get('/profile', protect, getUserProfile);
 
-// 🔥 3. NAYA CODE: Profile ko edit karke wapas save karne ke liye
-router.put('/update-profile', protect, upload.single('profileImage'), updateUserProfile);
+// 🔥 3. NAYA CODE: Profile ko edit karke wapas save karne ke liye (Multiple images ke liye upload.any() lagaya hai)
+router.put('/update-profile', protect, upload.any(), updateUserProfile);
+
+// 🔥 4. NAYA CODE: Account ko hamesha ke liye delete karne ke liye
+router.delete('/delete-account', protect, deleteAccount);
 
 module.exports = router;

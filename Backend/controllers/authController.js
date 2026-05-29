@@ -144,7 +144,8 @@ exports.setupProfile = async (req, res) => {
 
     if (req.file) {
       const uploadResponse = await imagekit.upload({
-        file: req.file.buffer, 
+        // 🔥 ERROR FIX: Direct buffer bhejney se fat rha tha, base64 convert kiya
+        file: req.file.buffer.toString("base64"), 
         fileName: `profile_${userId}_${Date.now()}.jpg`, 
         folder: "/LocalShaadi_Profiles", 
       });
@@ -158,6 +159,8 @@ exports.setupProfile = async (req, res) => {
 
     if (profileImageUrl) {
       updatePayload.profileImage = profileImageUrl;
+      // Naye multi-image setup ke liye pehli image array me bhi dal di
+      updatePayload.profileImages = [profileImageUrl];
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -207,14 +210,14 @@ exports.getUserProfile = async (req, res) => {
 };
 
 // =====================================================================
-// 🔥 NAYA CODE: 7. Update User Profile (Edit karke save karne ke liye)
+// 🔥 7. Update User Profile (UPDATED FOR MULTIPLE IMAGES)
 // =====================================================================
 exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     let updateData = { ...req.body };
 
-    // Frontend se siblings array string format me aati hai, usko wapas JSON/Array banana padega
+    // 1. Frontend se siblings array string format me aati hai, usko wapas JSON/Array banana padega
     if (updateData.siblings && typeof updateData.siblings === 'string') {
       try {
         updateData.siblings = JSON.parse(updateData.siblings);
@@ -223,21 +226,47 @@ exports.updateUserProfile = async (req, res) => {
       }
     }
 
-    // Agar user ne edit karte time nayi photo bhi daali hai
-    if (req.file) {
-      const uploadResponse = await imagekit.upload({
-        file: req.file.buffer,
-        fileName: `profile_${userId}_${Date.now()}.jpg`,
-        folder: "/LocalShaadi_Profiles",
+    // 2. Existing images ko parse karo jo frontend ne bheji hain
+    let existingImages = [];
+    if (updateData.existingImages && typeof updateData.existingImages === 'string') {
+      try {
+        existingImages = JSON.parse(updateData.existingImages);
+      } catch (err) {
+        console.error("Error parsing existing images array:", err);
+      }
+    }
+
+    // 3. Agar user ne naye photos upload kiye hain (req.files aayega upload.any() ki wajah se)
+    let uploadedImageUrls = [];
+    if (req.files && req.files.length > 0) {
+      const uploadPromises = req.files.map((file) => {
+        return imagekit.upload({
+          // 🔥 ERROR FIX: Buffer string format mein convert kiya
+          file: file.buffer.toString("base64"),
+          fileName: `profile_${userId}_${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`,
+          folder: "/LocalShaadi_Profiles",
+        });
       });
-      updateData.profileImage = uploadResponse.url;
+      
+      const uploadResults = await Promise.all(uploadPromises);
+      uploadedImageUrls = uploadResults.map(result => result.url);
+    }
+
+    // 4. Combine karo dono images ko aur Max 5 limit lagao
+    updateData.profileImages = [...existingImages, ...uploadedImageUrls].slice(0, 5);
+
+    // 5. Purana system break na ho isliye primary image set kardo
+    if (updateData.profileImages.length > 0) {
+      updateData.profileImage = updateData.profileImages[0];
+    } else {
+      updateData.profileImage = ""; // Sab delete kar diye gaye
     }
 
     // DB mein user ko find karo aur update karo
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updateData },
-      { new: true, runValidators: true } // new:true return karta hai updated document
+      { new: true, runValidators: true }
     ).select("-password");
 
     if (!updatedUser) {
@@ -251,6 +280,26 @@ exports.updateUserProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in updateUserProfile:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// =====================================================================
+// 🔥 8. NAYA CODE: DELETE ACCOUNT CONTROLLER
+// =====================================================================
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // User ko DB se remove karo
+    const deletedUser = await User.findByIdAndDelete(userId);
+    if (!deletedUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteAccount:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };

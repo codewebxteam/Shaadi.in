@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
       name: { type: String },
       maritalStatus: { type: String }
   }],
-  profileImage: { type: String }, 
+  profileImage: { type: String, default: [] }, 
   isProfileComplete: { type: Boolean, default: false }
 
 }, { timestamps: true }); // timestamps se createdAt aur updatedAt apne aap ban jayega
